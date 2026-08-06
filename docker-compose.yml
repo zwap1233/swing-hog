@@ -7,6 +7,14 @@ services:
     tty: true
     shm_size: 16G
 
+    environment:
+      - DISPLAY
+      - WAYLAND_DISPLAY
+      - XDG_RUNTIME_DIR
+      - PULSE_SERVER
+
     volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /mnt/wslg:/mnt/wslg
       - .:/home/xilinx/work
       - /opt/xilinx:/opt/xilinx
