@@ -1,0 +1,12 @@
+services:
+  yoctocontainer:
+    image: petalinuxcontainer
+    container_name: swingcontainer
+    hostname: swingcontainer
+    stdin_open: true
+    tty: true
+    shm_size: 16G
+
+    volumes:
+      - .:/home/xilinx/work
+      - /opt/xilinx:/opt/xilinx

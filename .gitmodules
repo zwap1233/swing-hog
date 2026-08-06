@@ -1,0 +1,6 @@
+[submodule "Hog"]
+	path = Hog
+	url = https://gitlab.com/hog-cern/Hog.git
+[submodule "boardstore/pynq-supported-board-file"]
+	path = boardstore/pynq-supported-board-file
+	url = https://github.com/xupsh/pynq-supported-board-file.git
