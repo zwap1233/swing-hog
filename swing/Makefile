@@ -2,13 +2,12 @@
 VFLAGS ?= -Wall -Wno-fatal --trace
 OBJDIR := obj_dir
 
-SIM_TOP := sim_main
-LINT_TOP := core
+TOP := core
 
 SRCS := $(shell find ./hdl/ -name "*.sv") $(shell find ./hdl/ -name "*.v")
 SIM_SRCS := $(shell find ./sim/ -name "*.cpp")
 
-SIM := $(OBJDIR)/V$(SIM_TOP)
+SIM := $(OBJDIR)/V$(TOP)
 
 .PHONY: all lint sim run wave clean
 
@@ -21,14 +20,17 @@ lint:
 	verilator $(VFLAGS) --lint-only -top-module $(LINT_TOP) $(SRCS)
 
 sim: $(SIM)
-$(SIM): $(SRCS) $(SIM_SRCS)
-	verilator $(VFLAGS) --binary -Mdir $(OBJDIR) -top-module $(SIM_TOP) $(SRCS) $(SIM_SRCS)
+$(SIM): code $(SRCS) $(SIM_SRCS)
+	make -C $(OBJDIR) -f V$(TOP).mk
+
+code:
+	verilator $(VFLAGS) --cc -Mdir $(OBJDIR) $(SRCS) -exe $(SIM_SRCS)
 
 run: $(SIM)
 	./$(SIM)
 
 wave: run
-	gtkwave trace.vcd &
+	gtkwave $(OBJDIR)/waveform.vcd &
 
 clean:
-	rm -rf $(OBJ_DIR)
+	rm -rf $(OBJDIR)

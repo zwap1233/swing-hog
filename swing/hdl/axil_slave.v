@@ -1,13 +1,19 @@
+
+`timescale 1 ns / 1 ps
+
 module axil_slave #(
     // {{{
     //
     // Size of the AXI-lite bus.  These are fixed, since 1) AXI-lite
     // is fixed at a width of 32-bits by Xilinx def'n, and 2) since
     // we only ever have 4 configuration words.
-    parameter C_AXI_ADDR_WIDTH = 4,
+    parameter C_AXI_ADDR_WIDTH = 13,
     parameter C_AXI_DATA_WIDTH = 32,
     parameter [0:0] OPT_SKIDBUFFER = 1'b0,
-    parameter [0:0] OPT_LOWPOWER = 0
+    parameter [0:0] OPT_LOWPOWER = 0,
+
+    parameter LED_COLUMNS = 100,
+    parameter LED_ROWS = 15
     // }}}
 ) (
     // {{{
@@ -50,20 +56,20 @@ module axil_slave #(
 
     wire i_reset = !S_AXI_ARESETN;
 
-    wire    axil_write_ready;
+    wire axil_write_ready;
     wire [C_AXI_ADDR_WIDTH-ADDRLSB-1:0] awskd_addr;
     //
     wire [C_AXI_DATA_WIDTH-1:0] wskd_data;
     wire [C_AXI_DATA_WIDTH/8-1:0] wskd_strb;
-    reg    axil_bvalid;
+    reg axil_bvalid;
     //
-    wire    axil_read_ready;
+    wire axil_read_ready;
     wire [C_AXI_ADDR_WIDTH-ADDRLSB-1:0] arskd_addr;
     reg [C_AXI_DATA_WIDTH-1:0] axil_read_data;
-    reg    axil_read_valid;
+    reg axil_read_valid;
 
-    reg [31:0] mem;
-    wire [31:0] wskd_r0, wskd_r1, wskd_r2, wskd_r3;
+    reg [31:0] mem [LED_COLUMNS*LED_ROWS]; //columns*rows is the number of led posistion, each led uses one word, where the first 3 bytes are red green and blue.
+    wire [31:0] wskd;
     // }}}
     ////////////////////////////////////////////////////////////////////////
     //
@@ -79,7 +85,7 @@ module axil_slave #(
     // {{{
 
     generate
-        if (OPT_SKIDBUFFER) begin : SKIDBUFFER_WRITE
+        if (OPT_SKIDBUFFER) begin : gen_SKIDBUFFER_WRITE
             // {{{
             wire awskd_valid, wskd_valid;
 
@@ -115,7 +121,7 @@ module axil_slave #(
 
             assign axil_write_ready = awskd_valid && wskd_valid && (!S_AXI_BVALID || S_AXI_BREADY);
             // }}}
-        end else begin : SIMPLE_WRITES
+        end else begin : gen_SIMPLE_WRITES
             // {{{
             reg axil_awready;
 
@@ -155,7 +161,7 @@ module axil_slave #(
     // {{{
 
     generate
-        if (OPT_SKIDBUFFER) begin : SKIDBUFFER_READ
+        if (OPT_SKIDBUFFER) begin : gen_SKIDBUFFER_READ
             // {{{
             wire arskd_valid;
 
@@ -176,11 +182,11 @@ module axil_slave #(
 
             assign axil_read_ready = arskd_valid && (!axil_read_valid || S_AXI_RREADY);
             // }}}
-        end else begin : SIMPLE_READS
+        end else begin : gen_SIMPLE_READS
             // {{{
             reg axil_arready;
 
-            always @(*) axil_arready = !S_AXI_RVALID;
+            always_comb axil_arready = !S_AXI_RVALID;
 
             assign arskd_addr = S_AXI_ARADDR[C_AXI_ADDR_WIDTH-1:ADDRLSB];
             assign S_AXI_ARREADY = axil_arready;
@@ -210,42 +216,21 @@ module axil_slave #(
     // {{{
 
     // apply_wstrb(old_data, new_data, write_strobes)
-    assign wskd_r0 = apply_wstrb(r0, wskd_data, wskd_strb);
-    assign wskd_r1 = apply_wstrb(r1, wskd_data, wskd_strb);
-    assign wskd_r2 = apply_wstrb(r2, wskd_data, wskd_strb);
-    assign wskd_r3 = apply_wstrb(r3, wskd_data, wskd_strb);
+    assign wskd = apply_wstrb(mem[awskd_addr], wskd_data, wskd_strb);
 
-    initial r0 = 0;
-    initial r1 = 0;
-    initial r2 = 0;
-    initial r3 = 0;
+    initial mem = '{default: '0};
     always @(posedge S_AXI_ACLK)
         if (i_reset) begin
-            r0 <= 0;
-            r1 <= 0;
-            r2 <= 0;
-            r3 <= 0;
+            mem <= '{default: '0};
         end else if (axil_write_ready) begin
-            case (awskd_addr)
-                2'b00: r0 <= wskd_r0;
-                2'b01: r1 <= wskd_r1;
-                2'b10: r2 <= wskd_r2;
-                2'b11: r3 <= wskd_r3;
-            endcase
+            mem[awskd_addr] <= wskd;
         end
 
     initial axil_read_data = 0;
     always @(posedge S_AXI_ACLK)
         if (OPT_LOWPOWER && !S_AXI_ARESETN) axil_read_data <= 0;
         else if (!S_AXI_RVALID || S_AXI_RREADY) begin
-            case (arskd_addr)
-                2'b00:   axil_read_data <= r0;
-                2'b01:   axil_read_data <= r1;
-                2'b10:   axil_read_data <= r2;
-                2'b11:   axil_read_data <= r3;
-                default: axil_read_data <= axil_read_data;
-            endcase
-
+            axil_read_data <= mem[arskd_addr];
             if (OPT_LOWPOWER && !axil_read_ready) axil_read_data <= 0;
         end
 

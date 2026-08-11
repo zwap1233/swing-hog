@@ -3,7 +3,7 @@
 
 module core #(
     parameter integer C_S00_AXI_DATA_WIDTH = 32,
-    parameter integer C_S00_AXI_ADDR_WIDTH = 4
+    parameter integer C_S00_AXI_ADDR_WIDTH = 13
 ) (
     input wire s00_axi_aclk,
     input wire s00_axi_aresetn,
