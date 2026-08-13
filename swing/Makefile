@@ -5,8 +5,7 @@ OBJDIR := obj_dir
 TOP := core
 
 SRCS := $(shell find ./hdl/ -name "*.sv") $(shell find ./hdl/ -name "*.v")
-SIM_SRCS := $(shell find ./sim/ -name "*.cpp")
-
+SIM_SRCS := $(shell find ./sim/ -name "*.cpp") 
 SIM := $(OBJDIR)/V$(TOP)
 
 .PHONY: all lint sim run wave clean
@@ -15,8 +14,11 @@ default: run
 
 all: lint run
 
+echo:
+	@echo $(SRCS)
+	@echo $(SIM_SRCS)
+
 lint:
-	echo $(SRCS)
 	verilator $(VFLAGS) --lint-only -top-module $(LINT_TOP) $(SRCS)
 
 sim: $(SIM)
