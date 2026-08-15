@@ -101,3 +101,4 @@ _info
 .bash_history
 
 swing/obj_dir/
+**.vcd
