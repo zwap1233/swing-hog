@@ -2,12 +2,10 @@
 #include <stdio.h>
 #include <verilated_vcd_c.h>
 
-#include "Vcore.h"
-
-template <class VTOP>
+template <class VT>
 class testbench {
    protected:
-	VTOP* core;
+	VT* core;
 	VerilatedVcdC* trace;
 
 	const uint64_t clock_period = 10000;
@@ -16,10 +14,9 @@ class testbench {
    public:
 	testbench() : testbench(10000) {}
 	testbench(uint64_t clock_period) : clock_period(clock_period) {
-
 		printf("Starting testbench..\n");
 
-		core = new VTOP();
+		core = new VT();
 		trace = new VerilatedVcdC;
 
 		core->trace(trace, 99);
@@ -31,7 +28,7 @@ class testbench {
 		trace->dump(0);
 		trace->flush();
 
-		core->s00_axi_aresetn = 1; //reset is active low, so set it high to turn the bus on
+		core->s00_axi_aresetn = 1;	// reset is active low, so set it high to turn the bus on
 	}
 
 	void tick() {
