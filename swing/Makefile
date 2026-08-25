@@ -2,7 +2,7 @@
 VFLAGS ?= -Wall -Wno-fatal --trace -CFLAGS -g 
 OBJDIR := obj_dir
 
-TOP := core
+TOP := axi_top
 
 SRCS := $(shell find ./hdl/ -name "*.sv") $(shell find ./hdl/ -name "*.v")
 SIM_SRCS := $(shell find ./sim/ -name "*.cpp") 
