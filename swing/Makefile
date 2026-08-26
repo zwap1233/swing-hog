@@ -1,5 +1,5 @@
 
-VFLAGS ?= -Wall -Wno-fatal --trace -CFLAGS -g 
+VFLAGS ?= -Wall -Wno-fatal --trace -CFLAGS -g -O0
 OBJDIR := obj_dir
 
 TOP := axi_top
@@ -32,7 +32,7 @@ run: $(SIM)
 	./$(SIM)
 
 wave: run
-	surfer trace.vcd
+	surfer -s trace.surf.ron trace.vcd
 
 clean:
 	rm -rf $(OBJDIR) trace.vcd

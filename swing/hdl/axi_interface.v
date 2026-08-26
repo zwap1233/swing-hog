@@ -206,14 +206,14 @@ module axi_interface #(
 
     localparam integer ADDR_LSB = (C_S_AXI_DATA_WIDTH / 32) + 1;
     localparam integer OPT_MEM_ADDR_BITS = 7;
-    localparam integer USER_NUM_MEM = 1;
+    localparam integer USER_NUM_MEM = 2;
 
     //----------------------------------------------
     //-- Signals for user logic memory space example
     //------------------------------------------------
     wire [OPT_MEM_ADDR_BITS:0] mem_address_read;
     wire [OPT_MEM_ADDR_BITS:0] mem_address_write;
-    wire [C_S_AXI_DATA_WIDTH-1:0] mem_data_out[0 : USER_NUM_MEM-1];
+    wire [C_S_AXI_DATA_WIDTH-1:0] mem_data_out[USER_NUM_MEM];
 
     genvar i;
     genvar mem_byte_index;

@@ -23,12 +23,8 @@ class testbench {
 		trace->spTrace()->set_time_resolution("ps");
 		trace->spTrace()->set_time_unit("ps");
 		trace->open("trace.vcd");
-
-		core->eval();  // eval and capture initial values
-		trace->dump(0);
-		trace->flush();
-
-		core->s00_axi_aresetn = 1;	// reset is active low, so set it high to turn the bus on
+		
+		reset(); //reset the chip to have a good start
 	}
 
 	void tick() {
