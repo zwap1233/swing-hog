@@ -1,0 +1,22 @@
+[tasks]
+full bmc prove cover : default
+bmc
+cover
+prove
+
+[options]
+cover: mode cover
+prove: mode prove
+bmc: mode bmc
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal axi_interface.v
+read -formal axi_top.v
+prep -top axi_top
+
+[files]
+../hdl/axi_interface.v
+../hdl/axi_top.v

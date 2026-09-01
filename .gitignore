@@ -101,4 +101,6 @@ _info
 .bash_history
 
 swing/obj_dir/
+swing/sby-build/
 **.vcd
+
