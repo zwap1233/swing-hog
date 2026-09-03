@@ -8,7 +8,7 @@ SRCS := $(shell find ./hdl/ -name "*.sv") $(shell find ./hdl/ -name "*.v")
 SIM_SRCS := $(shell find ./sim/ -name "*.cpp") 
 SIM := $(OBJDIR)/V$(TOP)
 
-FORMAL_CONFIG_DIR := ./sby-files
+FORMAL_CONFIG_DIR := ./sby-config
 
 .PHONY: all lint sim run code wave clean formal
 
@@ -40,4 +40,4 @@ wave: run
 	surfer -s trace.surf.ron trace.vcd
 
 clean:
-	rm -rf $(OBJDIR) trace.vcd
+	rm -rf $(OBJDIR) trace.vcd sby-build

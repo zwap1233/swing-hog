@@ -11,7 +11,7 @@ module axil_top #(
 
     // Parameters of Axi Slave Bus Interface S00_AXI
     parameter integer C_S00_AXI_DATA_WIDTH = 32,
-    parameter integer C_S00_AXI_ADDR_WIDTH = 4
+    parameter integer C_S00_AXI_ADDR_WIDTH = 8
 ) (
     // Users to add ports here
 
@@ -70,8 +70,6 @@ module axil_top #(
         .S_AXI_RREADY(s00_axi_rready)
     );
 
-    // Add user logic here
 
-    // User logic ends
 
 endmodule
