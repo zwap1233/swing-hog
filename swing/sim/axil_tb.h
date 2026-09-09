@@ -7,7 +7,13 @@ class axil_tb : public testbench<VT> {
    public:
 	using testbench<VT>::testbench;
 
-	uint32_t write(uint32_t addr, uint32_t data) {
+
+	void write(const uint32_t addr, const uint32_t* data, const uint32_t len, uint8_t* wstrb = nullptr) {
+		for(int i = 0; i < len; i++)
+			write(addr + i, data, wstrb);
+	};
+
+	uint32_t write(uint32_t addr, uint32_t data, uint8_t* wstrb = nullptr) {
 		/* The Master puts an address on the Write Address channel and data on the
 		 * Write data channel. At the same time it asserts AWVALID and WVALID
 		 * indicating the address and data on the respective channels is valid.
@@ -57,6 +63,12 @@ class axil_tb : public testbench<VT> {
 		this->core->s00_axi_bvalid = 0;
 
 		return resp;
+	}
+
+	void read(const uint32_t addr, uint32_t* data, const uint32_t len) {
+		for(int i = 0; i < len; i++){
+			data[i] = read(addr+i);
+		}
 	}
 
 	uint32_t read(uint32_t addr) {

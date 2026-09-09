@@ -80,33 +80,82 @@ module axil_interface #(
     input wire S_AXI_RREADY
 );
 
-//Instantiate block ram
-wire [C_AXI_ADDR_WIDTH-1:0] ram_addr;
-wire [C_AXI_DATA_WIDTH-1:0] ram_out;
-wire [C_AXI_DATA_WIDTH-1:0] ram_in;
-wire ram_en, ram_wen;
+    //Instantiate block ram
+    wire [C_AXI_ADDR_WIDTH-1:0] ram_addr;
+    wire [C_AXI_DATA_WIDTH-1:0] ram_out;
+    wire [C_AXI_DATA_WIDTH-1:0] ram_in;
+    wire ram_en, ram_wen;
 
-ram #(
-    .DATA_WIDTH(C_AXI_DATA_WIDTH),
-    .ADDR_WIDTH(C_AXI_ADDR_WIDTH)
-) ram_0 (
-    .clk(S_AXI_ACLK),
-    .en(ram_en),
-    .we(ram_wen),
-    .addr(ram_addr),
-    .data_in(ram_in),
-    .data_out(ram_out)
-);
+    ram #(
+        .DATA_WIDTH(C_AXI_DATA_WIDTH),
+        .ADDR_WIDTH(C_AXI_ADDR_WIDTH)
+    ) ram_0 (
+        .clk(S_AXI_ACLK),
+        .en(ram_en),
+        .we(ram_wen),
+        .addr(ram_addr),
+        .data_in(ram_in),
+        .data_out(ram_out)
+    );
 
-//Write channel
+    localparam S_WAIT_ADDR = 0;
+    localparam S_WAIT_DATA = 1;
+    localparam S_SEND_RESP = 2;
 
+    reg [C_AXI_ADDR_WIDTH-1:0] w_addr;
+
+    integer w_state;
+    integer n_state;
+
+
+
+    always @(posedge S_AXI_ACLK) begin
+        if (!S_AXI_ARESETN) begin
+            w_state = S_WAIT_ADDR;
+        end else begin
+            w_state = n_state;
+        end
+    end
+
+    always @(posedge S_AXI_ACLK) begin
+        case (w_state)
+            default:
+            S_WAIT_ADDR : if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) addr <= S_AXI_AWADDR;
+        endcase
+    end
+
+    //Write channel
+    always_comb begin
+        case (w_state)
+            default:
+            S_WAIT_ADDR : begin
+                S_AXI_AWREADY = 1;
+                S_AXI_WREADY  = 1;
+                S_AXI_BVALID  = 0;
+
+                if (S_AXI_AWVALID == 1 && S_AXI_WVALID == 1) n_state = S_SEND_RESP;
+                else if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) n_state = S_WAIT_DATA;
+                else n_state = S_WAIT_ADDR;
+            end
+            S_WAIT_DATA: begin
+                S_AXI_AWREADY = 0;
+                S_AXI_WREADY  = 1;
+                S_AXI_BVALID  = 0;
+
+                if (S_AXI_WVALID == 1) n_state = S_SEND_RESP;
+                else n_state = S_WAIT_DATA;
+            end
+            S_SEND_RESP: begin
+
+            end
+        endcase
+    end
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     //
     // Formal properties
-    // {{{
-    ////////////////////////////////////////////////////////////////////////////////
+    //
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
 `ifdef FORMAL
@@ -115,13 +164,12 @@ ram #(
     // The AXI-lite control interface
     //
     ////////////////////////////////////////////////////////////////////////
-    //
-    // {{{
+
     localparam F_AXIL_LGDEPTH = 4;
     wire [F_AXIL_LGDEPTH-1:0] faxil_rd_outstanding, faxil_wr_outstanding, faxil_awr_outstanding;
 
     faxil_slave #(
-        // {{{
+
         .C_AXI_DATA_WIDTH(C_AXI_DATA_WIDTH),
         .C_AXI_ADDR_WIDTH(C_AXI_ADDR_WIDTH),
         .F_LGDEPTH(F_AXIL_LGDEPTH),
@@ -129,40 +177,40 @@ ram #(
         .F_AXI_MAXDELAY(3),
         .F_AXI_MAXRSTALL(5),
         .F_OPT_COVER_BURST(4)
-        // }}}
+
     ) faxil (
-        // {{{
+
         .i_clk(S_AXI_ACLK),
         .i_axi_reset_n(S_AXI_ARESETN),
-        //
+
         .i_axi_awvalid(S_AXI_AWVALID),
         .i_axi_awready(S_AXI_AWREADY),
-        .i_axi_awaddr(S_AXI_AWADDR),
-        .i_axi_awprot(S_AXI_AWPROT),
-        //
+        .i_axi_awaddr (S_AXI_AWADDR),
+        .i_axi_awprot (S_AXI_AWPROT),
+
         .i_axi_wvalid(S_AXI_WVALID),
         .i_axi_wready(S_AXI_WREADY),
-        .i_axi_wdata(S_AXI_WDATA),
-        .i_axi_wstrb(S_AXI_WSTRB),
-        //
+        .i_axi_wdata (S_AXI_WDATA),
+        .i_axi_wstrb (S_AXI_WSTRB),
+
         .i_axi_bvalid(S_AXI_BVALID),
         .i_axi_bready(S_AXI_BREADY),
-        .i_axi_bresp(S_AXI_BRESP),
-        //
+        .i_axi_bresp (S_AXI_BRESP),
+
         .i_axi_arvalid(S_AXI_ARVALID),
         .i_axi_arready(S_AXI_ARREADY),
-        .i_axi_araddr(S_AXI_ARADDR),
-        .i_axi_arprot(S_AXI_ARPROT),
-        //
+        .i_axi_araddr (S_AXI_ARADDR),
+        .i_axi_arprot (S_AXI_ARPROT),
+
         .i_axi_rvalid(S_AXI_RVALID),
         .i_axi_rready(S_AXI_RREADY),
-        .i_axi_rdata(S_AXI_RDATA),
-        .i_axi_rresp(S_AXI_RRESP),
-        //
-        .f_axi_rd_outstanding(faxil_rd_outstanding),
-        .f_axi_wr_outstanding(faxil_wr_outstanding),
+        .i_axi_rdata (S_AXI_RDATA),
+        .i_axi_rresp (S_AXI_RRESP),
+
+        .f_axi_rd_outstanding (faxil_rd_outstanding),
+        .f_axi_wr_outstanding (faxil_wr_outstanding),
         .f_axi_awr_outstanding(faxil_awr_outstanding)
-        // }}}
+
     );
 
     always_comb
@@ -189,13 +237,7 @@ ram #(
     // Cover checks
     //
     ////////////////////////////////////////////////////////////////////////
-    //
-    // {{{
 
-    // While there are already cover properties in the formal property
-    // set above, you'll probably still want to cover something
-    // application specific here
 `endif
-    // }}}
 
 endmodule
