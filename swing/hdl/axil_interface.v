@@ -79,6 +79,17 @@ module axil_interface #(
     // accept the read data and response information.
     input wire S_AXI_RREADY
 );
+    //apply wstrb
+    function [C_AXI_DATA_WIDTH-1:0] apply_wstrb;
+        input [C_AXI_DATA_WIDTH-1:0] data_in;
+        input [(C_S_AXI_DATA_WIDTH/8)-1:0] wstrb;
+        output [C_AXI_DATA_WIDTH-1:0] data_out;
+
+        integer k;
+        for (k = 0; k < C_AXI_DATA_WIDTH / 8; k = k + 1) begin
+            apply_wstrb[k*8+:8] = wstrb[k] ? new_data[k*8+:8] : prior_data[k*8+:8];
+        end
+    endfunction
 
     //Instantiate block ram
     wire [C_AXI_ADDR_WIDTH-1:0] ram_addr;
@@ -97,17 +108,20 @@ module axil_interface #(
         .data_in(ram_in),
         .data_out(ram_out)
     );
+    
+    assing ram_addr = (S_AXI_WVALID)
+    assign ram_wen = S_AXI_WVALID && S_AXI_WREADY;
+    assign ram_en  = S_AXI_WVALID && S_AXI_WREADY;
 
-    localparam S_WAIT_ADDR = 0;
-    localparam S_WAIT_DATA = 1;
-    localparam S_SEND_RESP = 2;
+
+    // localparam S_WAIT_ADDR = 0;
+    // localparam S_WAIT_DATA = 1;
+    // localparam S_SEND_RESP = 2;
 
     reg [C_AXI_ADDR_WIDTH-1:0] w_addr;
 
     integer w_state;
     integer n_state;
-
-
 
     always @(posedge S_AXI_ACLK) begin
         if (!S_AXI_ARESETN) begin
@@ -132,6 +146,7 @@ module axil_interface #(
                 S_AXI_AWREADY = 1;
                 S_AXI_WREADY  = 1;
                 S_AXI_BVALID  = 0;
+                S_AXI_BRESP   = 0;
 
                 if (S_AXI_AWVALID == 1 && S_AXI_WVALID == 1) n_state = S_SEND_RESP;
                 else if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) n_state = S_WAIT_DATA;
