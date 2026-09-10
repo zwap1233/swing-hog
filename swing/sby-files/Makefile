@@ -5,5 +5,5 @@ HDL_DIR := ../hdl
 
 .PHONY: axil
 
-axi:
-	sby -f --prefix $(BUILD_DIR)/axi $(CONFIG_DIR)/axi.sby prove
+axil:
+	sby -f --prefix $(BUILD_DIR)/axil $(CONFIG_DIR)/axil.sby prove

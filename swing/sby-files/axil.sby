@@ -1,0 +1,26 @@
+[tasks]
+full bmc prove cover : default
+bmc
+cover
+prove
+
+[options]
+cover: mode cover
+prove: mode prove
+bmc: mode bmc
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal ram.v
+read -formal axil_interface.v
+read -formal axil_top.v
+read -formal faxil_slave.v
+prep -top axil_top
+
+[files]
+../hdl/axil_interface.v
+../hdl/axil_top.v
+../formal/faxil_slave.v
+../hdl/ram.v

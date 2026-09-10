@@ -33,7 +33,7 @@ module axil_interface #(
     input wire S_AXI_AWVALID,
     // Write address ready. This signal indicates that the slave is ready
     // to accept an address and associated control signals.
-    output wire S_AXI_AWREADY,
+    output reg S_AXI_AWREADY,
     // Write data (issued by master, acceped by Slave)
     input wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_WDATA,
     // Write strobes. This signal indicates which byte lanes hold
@@ -45,13 +45,13 @@ module axil_interface #(
     input wire S_AXI_WVALID,
     // Write ready. This signal indicates that the slave
     // can accept the write data.
-    output wire S_AXI_WREADY,
+    output reg S_AXI_WREADY,
     // Write response. This signal indicates the status
     // of the write transaction.
-    output wire [1 : 0] S_AXI_BRESP,
+    output reg [1 : 0] S_AXI_BRESP,
     // Write response valid. This signal indicates that the channel
     // is signaling a valid write response.
-    output wire S_AXI_BVALID,
+    output reg S_AXI_BVALID,
     // Response ready. This signal indicates that the master
     // can accept a write response.
     input wire S_AXI_BREADY,
@@ -66,141 +66,81 @@ module axil_interface #(
     input wire S_AXI_ARVALID,
     // Read address ready. This signal indicates that the slave is
     // ready to accept an address and associated control signals.
-    output wire S_AXI_ARREADY,
+    output reg S_AXI_ARREADY,
     // Read data (issued by slave)
-    output wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
+    output reg [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
     // Read response. This signal indicates the status of the
     // read transfer.
-    output wire [1 : 0] S_AXI_RRESP,
+    output reg [1 : 0] S_AXI_RRESP,
     // Read valid. This signal indicates that the channel is
     // signaling the required read data.
-    output wire S_AXI_RVALID,
+    output reg S_AXI_RVALID,
     // Read ready. This signal indicates that the master can
     // accept the read data and response information.
     input wire S_AXI_RREADY
 );
-    //apply wstrb
-    function automatic [C_AXI_DATA_WIDTH-1:0] apply_wstrb;
-        input [C_AXI_DATA_WIDTH-1:0] data_in;
-        input [(C_S_AXI_DATA_WIDTH/8)-1:0] wstrb;
-        output [C_AXI_DATA_WIDTH-1:0] data_out;
-
-        integer k;
-        for (k = 0; k < C_AXI_DATA_WIDTH / 8; k = k + 1) begin
-            apply_wstrb[k*8+:8] = wstrb[k] ? new_data[k*8+:8] : prior_data[k*8+:8];
-        end
-    endfunction
 
     //Instantiate block ram
-    reg [C_AXI_ADDR_WIDTH-1:0] ram_w_addr;
-    reg [C_AXI_ADDR_WIDTH-1:0] ram_r_addr;
-    reg ram_addr_valid;
-    wire [C_AXI_DATA_WIDTH-1:0] ram_out;
-    reg [C_AXI_DATA_WIDTH-1:0] ram_in;
-    wire ram_en, ram_wen;
 
-    ram #(
-        .DATA_WIDTH(C_AXI_DATA_WIDTH),
-        .ADDR_WIDTH(C_AXI_ADDR_WIDTH)
-    ) ram_0 (
-        .i_clk(S_AXI_ACLK),
-        .i_ena(ram_wen),
-        .i_enb(ram_en),
-        .i_wea(ram_wen),
-        .i_addr_a(ram_w_addr),
-        .i_addr_b(ram_r_addr),
-        .i_data_a(ram_in),
-        .o_data_b(ram_out)
-    );
+    wire ram_w_en, ram_r_en;
+    wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
+    reg [C_S_AXI_ADDR_WIDTH-1:0] ram_w_addr;
+    reg [C_S_AXI_ADDR_WIDTH-1:0] ram_r_addr;
+    wire [C_S_AXI_DATA_WIDTH-1:0] ram_w_data;
+    wire [C_S_AXI_DATA_WIDTH-1:0] ram_r_data;
 
-    always @(posedge S_AXI_ACLK) begin
-        if (S_AXI_AWREADY && S_AXI_AWVALID) begin
-            ram_addr <= S_AXI_AWADDR;
-        end
-
-        if (S_AXI_WVALID && S_AXI_WREADY) begin
-            ram_in <= S_AXI_WDATA;
-        end
-    end
-
-
-    //we have not yet looked at the read channel so for now ram_wen is ram_en;
-    assign ram_wen = S_AXI_WVALID && S_AXI_WREADY;
-    assign ram_en  = (S_AXI_WVALID && S_AXI_WREADY);
-
-    localparam S_RESET = 2'b00, S_ADDR = 2'b01, S_DATA = 2'b10;
-
-    reg [C_AXI_ADDR_WIDTH-1:0] w_addr;
     reg w_addr_valid;
 
-    reg [1:0] w_state;
+    ram #(
+        .DATA_WIDTH(C_S_AXI_DATA_WIDTH),
+        .ADDR_WIDTH(C_S_AXI_ADDR_WIDTH)
+    ) ram_0 (
+        .i_clk(S_AXI_ACLK),
+        .i_ena(ram_w_en),
+        .i_wea(ram_wstrb),
+        .i_addr_a(ram_w_addr),
+        .i_data_a(ram_w_data),
+        .i_enb(ram_r_en),
+        .o_data_b(ram_r_data),
+        .i_addr_b(ram_r_addr)
+    );
+
+    assign ram_w_en   = (S_AXI_WVALID && S_AXI_WREADY) && w_addr_valid;
+    assign ram_wstrb = S_AXI_WSTRB;
+    assign ram_w_data = S_AXI_WDATA;
 
     always @(posedge S_AXI_ACLK) begin
         if (!S_AXI_ARESETN) begin
-            w_state <= S_RESET;
+            w_addr_valid  <= 0;
+
+            S_AXI_WREADY  <= 0;
+            S_AXI_AWREADY <= 1;
+            S_AXI_BVALID  <= 0;
+            S_AXI_BRESP   <= 0;
+
+        end else begin
+            if (S_AXI_AWVALID && S_AXI_AWREADY) begin
+                ram_w_addr <= S_AXI_AWADDR;
+                w_addr_valid <= 1;
+                S_AXI_WREADY <= 1;  //we can now receive data
+                S_AXI_AWREADY <= 0;  //dont accept requests until this one has been completed
+            end
+
+            if (S_AXI_WVALID && S_AXI_WREADY) begin
+                w_addr_valid <= 0;  //transaction is completed, addr no longer valid.
+                S_AXI_BVALID <= 1;
+                S_AXI_BRESP  <= 2'b00;
+                S_AXI_WREADY <= 0;  //dont receive data until response has been sent
+            end
+
+            if (S_AXI_BREADY && S_AXI_BVALID) begin
+                S_AXI_BVALID  <= 0;
+                S_AXI_AWREADY <= 1;  //receive data again;
+            end
+
         end
     end
 
-    always @(posedge S_AXI_ACLK) begin
-        case (w_state)
-            default:
-            //reset the interface
-            S_RESET : begin
-                S_AXI_WREADY <= 0;
-                S_AXI_AWREADY <= 0;
-                S_AXI_BVALID <= 0;
-                S_AXI_BRESP <= 0;
-
-                w_addr_valid <= 0;
-                w_addr <= 0;
-
-                if (S_AXI_ARESETN) w_state <= S_ADDR;
-            end
-
-            //wait to receive the address
-            S_ADDR: begin
-                S_AXI_AWREADY <= 1;
-                S_AXI_WREADY  <= 1;
-
-            end
-
-        endcase
-    end
-    // always @(posedge S_AXI_ACLK) begin
-    //     case (w_state)
-    //         default:
-    //         S_WAIT_ADDR : if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) addr <= S_AXI_AWADDR;
-    //     endcase
-    // end
-    //
-    // //Write channel
-    // always_comb begin
-    //     case (w_state)
-    //         default:
-    //         S_WAIT_ADDR : begin
-    //             S_AXI_AWREADY = 1;
-    //             S_AXI_WREADY  = 1;
-    //             S_AXI_BVALID  = 0;
-    //             S_AXI_BRESP   = 0;
-    //
-    //             if (S_AXI_AWVALID == 1 && S_AXI_WVALID == 1) n_state = S_SEND_RESP;
-    //             else if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) n_state = S_WAIT_DATA;
-    //             else n_state = S_WAIT_ADDR;
-    //         end
-    //         S_WAIT_DATA: begin
-    //             S_AXI_AWREADY = 0;
-    //             S_AXI_WREADY  = 1;
-    //             S_AXI_BVALID  = 0;
-    //
-    //             if (S_AXI_WVALID == 1) n_state = S_SEND_RESP;
-    //             else n_state = S_WAIT_DATA;
-    //         end
-    //         S_SEND_RESP: begin
-    //
-    //         end
-    //     endcase
-    // end
-    //
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     //
@@ -214,14 +154,17 @@ module axil_interface #(
     // The AXI-lite control interface
     //
     ////////////////////////////////////////////////////////////////////////
+    localparam OPT_SKIDBUFFER = 0;
+    localparam OPT_LOWPOWER = 0;
+
 
     localparam F_AXIL_LGDEPTH = 4;
     wire [F_AXIL_LGDEPTH-1:0] faxil_rd_outstanding, faxil_wr_outstanding, faxil_awr_outstanding;
 
     faxil_slave #(
 
-        .C_AXI_DATA_WIDTH(C_AXI_DATA_WIDTH),
-        .C_AXI_ADDR_WIDTH(C_AXI_ADDR_WIDTH),
+        .C_AXI_DATA_WIDTH(C_S_AXI_DATA_WIDTH),
+        .C_AXI_ADDR_WIDTH(C_S_AXI_ADDR_WIDTH),
         .F_LGDEPTH(F_AXIL_LGDEPTH),
         .F_AXI_MAXWAIT(3),
         .F_AXI_MAXDELAY(3),

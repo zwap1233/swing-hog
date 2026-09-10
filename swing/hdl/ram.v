@@ -7,21 +7,24 @@ module ram #(
 ) (
     input i_clk,
     input i_ena,
-    input i_wea,
-    input i_enb,
-
+    input [(DATA_WIDTH/8)-1:0] i_wea,
     input [ADDR_WIDTH-1:0] i_addr_a,
     input [DATA_WIDTH-1:0] i_data_a,
 
+    input i_enb,
     input [ADDR_WIDTH-1:0] i_addr_b,
     output reg [DATA_WIDTH-1:0] o_data_b
 );
 
     reg [DATA_WIDTH-1:0] ram[ADDR_WIDTH^2];
+    integer i;
 
     always @(posedge i_clk) begin
         if (i_ena) begin
-            if (i_wea) ram[i_addr_a] <= i_data_a;
+            for(i=0; i < (DATA_WIDTH/8); i=i+1) begin
+                if(i_wea[i])
+                    ram[i_addr_a][i*8 +: 8] <= i_data_a[i*8 +: 8];
+            end
         end
     end
 
@@ -30,5 +33,5 @@ module ram #(
     end
 
 endmodule
-;
+
 
