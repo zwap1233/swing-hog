@@ -5,22 +5,28 @@ module ram #(
     parameter integer ADDR_WIDTH = 8,
     parameter integer DATA_WIDTH = 32
 ) (
-    input clk,
-    input en,
-    input we,
+    input i_clk,
+    input i_ena,
+    input i_wea,
+    input i_enb,
 
-    input [ADDR_WIDTH-1:0] addr,
-    input [DATA_WIDTH-1:0] data_in,
-    output reg [DATA_WIDTH-1:0] data_out
+    input [ADDR_WIDTH-1:0] i_addr_a,
+    input [DATA_WIDTH-1:0] i_data_a,
+
+    input [ADDR_WIDTH-1:0] i_addr_b,
+    output reg [DATA_WIDTH-1:0] o_data_b
 );
 
     reg [DATA_WIDTH-1:0] ram[ADDR_WIDTH^2];
 
-    always @(posedge clk) begin
-        if (en) begin
-            if (we) ram[addr] <= data_in;
-            else data_out <= ram[addr];
+    always @(posedge i_clk) begin
+        if (i_ena) begin
+            if (i_wea) ram[i_addr_a] <= i_data_a;
         end
+    end
+
+    always @(posedge clk) begin
+        if (i_enb) o_data_b <= ram[i_addr_b];
     end
 
 endmodule

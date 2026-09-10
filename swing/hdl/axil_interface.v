@@ -80,7 +80,7 @@ module axil_interface #(
     input wire S_AXI_RREADY
 );
     //apply wstrb
-    function [C_AXI_DATA_WIDTH-1:0] apply_wstrb;
+    function automatic [C_AXI_DATA_WIDTH-1:0] apply_wstrb;
         input [C_AXI_DATA_WIDTH-1:0] data_in;
         input [(C_S_AXI_DATA_WIDTH/8)-1:0] wstrb;
         output [C_AXI_DATA_WIDTH-1:0] data_out;
@@ -92,80 +92,115 @@ module axil_interface #(
     endfunction
 
     //Instantiate block ram
-    wire [C_AXI_ADDR_WIDTH-1:0] ram_addr;
+    reg [C_AXI_ADDR_WIDTH-1:0] ram_w_addr;
+    reg [C_AXI_ADDR_WIDTH-1:0] ram_r_addr;
+    reg ram_addr_valid;
     wire [C_AXI_DATA_WIDTH-1:0] ram_out;
-    wire [C_AXI_DATA_WIDTH-1:0] ram_in;
+    reg [C_AXI_DATA_WIDTH-1:0] ram_in;
     wire ram_en, ram_wen;
 
     ram #(
         .DATA_WIDTH(C_AXI_DATA_WIDTH),
         .ADDR_WIDTH(C_AXI_ADDR_WIDTH)
     ) ram_0 (
-        .clk(S_AXI_ACLK),
-        .en(ram_en),
-        .we(ram_wen),
-        .addr(ram_addr),
-        .data_in(ram_in),
-        .data_out(ram_out)
+        .i_clk(S_AXI_ACLK),
+        .i_ena(ram_wen),
+        .i_enb(ram_en),
+        .i_wea(ram_wen),
+        .i_addr_a(ram_w_addr),
+        .i_addr_b(ram_r_addr),
+        .i_data_a(ram_in),
+        .o_data_b(ram_out)
     );
-    
-    assing ram_addr = (S_AXI_WVALID)
+
+    always @(posedge S_AXI_ACLK) begin
+        if (S_AXI_AWREADY && S_AXI_AWVALID) begin
+            ram_addr <= S_AXI_AWADDR;
+        end
+
+        if (S_AXI_WVALID && S_AXI_WREADY) begin
+            ram_in <= S_AXI_WDATA;
+        end
+    end
+
+
+    //we have not yet looked at the read channel so for now ram_wen is ram_en;
     assign ram_wen = S_AXI_WVALID && S_AXI_WREADY;
-    assign ram_en  = S_AXI_WVALID && S_AXI_WREADY;
+    assign ram_en  = (S_AXI_WVALID && S_AXI_WREADY);
 
-
-    // localparam S_WAIT_ADDR = 0;
-    // localparam S_WAIT_DATA = 1;
-    // localparam S_SEND_RESP = 2;
+    localparam S_RESET = 2'b00, S_ADDR = 2'b01, S_DATA = 2'b10;
 
     reg [C_AXI_ADDR_WIDTH-1:0] w_addr;
+    reg w_addr_valid;
 
-    integer w_state;
-    integer n_state;
+    reg [1:0] w_state;
 
     always @(posedge S_AXI_ACLK) begin
         if (!S_AXI_ARESETN) begin
-            w_state = S_WAIT_ADDR;
-        end else begin
-            w_state = n_state;
+            w_state <= S_RESET;
         end
     end
 
     always @(posedge S_AXI_ACLK) begin
         case (w_state)
             default:
-            S_WAIT_ADDR : if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) addr <= S_AXI_AWADDR;
+            //reset the interface
+            S_RESET : begin
+                S_AXI_WREADY <= 0;
+                S_AXI_AWREADY <= 0;
+                S_AXI_BVALID <= 0;
+                S_AXI_BRESP <= 0;
+
+                w_addr_valid <= 0;
+                w_addr <= 0;
+
+                if (S_AXI_ARESETN) w_state <= S_ADDR;
+            end
+
+            //wait to receive the address
+            S_ADDR: begin
+                S_AXI_AWREADY <= 1;
+                S_AXI_WREADY  <= 1;
+
+            end
+
         endcase
     end
-
-    //Write channel
-    always_comb begin
-        case (w_state)
-            default:
-            S_WAIT_ADDR : begin
-                S_AXI_AWREADY = 1;
-                S_AXI_WREADY  = 1;
-                S_AXI_BVALID  = 0;
-                S_AXI_BRESP   = 0;
-
-                if (S_AXI_AWVALID == 1 && S_AXI_WVALID == 1) n_state = S_SEND_RESP;
-                else if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) n_state = S_WAIT_DATA;
-                else n_state = S_WAIT_ADDR;
-            end
-            S_WAIT_DATA: begin
-                S_AXI_AWREADY = 0;
-                S_AXI_WREADY  = 1;
-                S_AXI_BVALID  = 0;
-
-                if (S_AXI_WVALID == 1) n_state = S_SEND_RESP;
-                else n_state = S_WAIT_DATA;
-            end
-            S_SEND_RESP: begin
-
-            end
-        endcase
-    end
-
+    // always @(posedge S_AXI_ACLK) begin
+    //     case (w_state)
+    //         default:
+    //         S_WAIT_ADDR : if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) addr <= S_AXI_AWADDR;
+    //     endcase
+    // end
+    //
+    // //Write channel
+    // always_comb begin
+    //     case (w_state)
+    //         default:
+    //         S_WAIT_ADDR : begin
+    //             S_AXI_AWREADY = 1;
+    //             S_AXI_WREADY  = 1;
+    //             S_AXI_BVALID  = 0;
+    //             S_AXI_BRESP   = 0;
+    //
+    //             if (S_AXI_AWVALID == 1 && S_AXI_WVALID == 1) n_state = S_SEND_RESP;
+    //             else if (S_AXI_AWVALID == 1 && S_AXI_WVALID != 1) n_state = S_WAIT_DATA;
+    //             else n_state = S_WAIT_ADDR;
+    //         end
+    //         S_WAIT_DATA: begin
+    //             S_AXI_AWREADY = 0;
+    //             S_AXI_WREADY  = 1;
+    //             S_AXI_BVALID  = 0;
+    //
+    //             if (S_AXI_WVALID == 1) n_state = S_SEND_RESP;
+    //             else n_state = S_WAIT_DATA;
+    //         end
+    //         S_SEND_RESP: begin
+    //
+    //         end
+    //     endcase
+    // end
+    //
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     //
