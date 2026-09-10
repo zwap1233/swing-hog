@@ -8,12 +8,13 @@ class axil_tb : public testbench<VT> {
 	using testbench<VT>::testbench;
 
 
-	void write(const uint32_t addr, const uint32_t* data, const uint32_t len, uint8_t* wstrb = nullptr) {
+	void write_buf(const uint32_t addr, const uint32_t* data, const uint32_t len, uint8_t* wstrb = nullptr) {
 		for(int i = 0; i < len; i++)
-			write(addr + i, data, wstrb);
+			write(addr + i, data[i], wstrb);
 	};
 
 	uint32_t write(uint32_t addr, uint32_t data, uint8_t* wstrb = nullptr) {
+		printf("Writing 0x%x to 0x%x\n", data, addr);
 		/* The Master puts an address on the Write Address channel and data on the
 		 * Write data channel. At the same time it asserts AWVALID and WVALID
 		 * indicating the address and data on the respective channels is valid.
@@ -65,13 +66,14 @@ class axil_tb : public testbench<VT> {
 		return resp;
 	}
 
-	void read(const uint32_t addr, uint32_t* data, const uint32_t len) {
+	void read_buf(const uint32_t addr, uint32_t* data, const uint32_t len) {
 		for(int i = 0; i < len; i++){
 			data[i] = read(addr+i);
 		}
 	}
 
 	uint32_t read(uint32_t addr) {
+		printf("Reading from 0x%x\n", addr);
 		/* The Master puts an address on the Read Address channel as well as
 		 * asserting ARVALID, indicating the address is valid, and RREADY,
 		 * indicating the master is ready to receive data from the slave. */

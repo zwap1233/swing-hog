@@ -79,35 +79,38 @@ module axil_interface #(
     // accept the read data and response information.
     input wire S_AXI_RREADY
 );
+    // NOTE: using a register instead of block ram to simplefy things, this
+    // will not work on the chip because this will use distributed ram of
+    // which there isnt enough available
+    reg [C_S_AXI_DATA_WIDTH-1:0] ram [2**8];
 
     //Instantiate block ram
-
-    wire ram_w_en, ram_r_en;
-    wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
+    // wire ram_w_en, ram_r_en;
+    // wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
     reg [C_S_AXI_ADDR_WIDTH-1:0] ram_w_addr;
-    reg [C_S_AXI_ADDR_WIDTH-1:0] ram_r_addr;
-    wire [C_S_AXI_DATA_WIDTH-1:0] ram_w_data;
-    wire [C_S_AXI_DATA_WIDTH-1:0] ram_r_data;
-
+    // reg [C_S_AXI_ADDR_WIDTH-1:0] ram_r_addr;
+    // wire [C_S_AXI_DATA_WIDTH-1:0] ram_w_data;
+    // wire [C_S_AXI_DATA_WIDTH-1:0] ram_r_data;
+    //
     reg w_addr_valid;
-
-    ram #(
-        .DATA_WIDTH(C_S_AXI_DATA_WIDTH),
-        .ADDR_WIDTH(C_S_AXI_ADDR_WIDTH)
-    ) ram_0 (
-        .i_clk(S_AXI_ACLK),
-        .i_ena(ram_w_en),
-        .i_wea(ram_wstrb),
-        .i_addr_a(ram_w_addr),
-        .i_data_a(ram_w_data),
-        .i_enb(ram_r_en),
-        .o_data_b(ram_r_data),
-        .i_addr_b(ram_r_addr)
-    );
-
-    assign ram_w_en   = (S_AXI_WVALID && S_AXI_WREADY) && w_addr_valid;
-    assign ram_wstrb = S_AXI_WSTRB;
-    assign ram_w_data = S_AXI_WDATA;
+    //
+    // ram #(
+    //     .DATA_WIDTH(C_S_AXI_DATA_WIDTH),
+    //     .ADDR_WIDTH(C_S_AXI_ADDR_WIDTH)
+    // ) ram_0 (
+    //     .i_clk(S_AXI_ACLK),
+    //     .i_ena(ram_w_en),
+    //     .i_wea(ram_wstrb),
+    //     .i_addr_a(ram_w_addr),
+    //     .i_data_a(ram_w_data),
+    //     .i_enb(ram_r_en),
+    //     .o_data_b(ram_r_data),
+    //     .i_addr_b(ram_r_addr)
+    // );
+    //
+    // assign ram_w_en   = (S_AXI_WVALID && S_AXI_WREADY) && w_addr_valid;
+    // assign ram_wstrb = S_AXI_WSTRB;
+    // assign ram_w_data = S_AXI_WDATA;
 
     always @(posedge S_AXI_ACLK) begin
         if (!S_AXI_ARESETN) begin
@@ -131,6 +134,8 @@ module axil_interface #(
                 S_AXI_BVALID <= 1;
                 S_AXI_BRESP  <= 2'b00;
                 S_AXI_WREADY <= 0;  //dont receive data until response has been sent
+
+                ram[ram_w_addr] <= S_AXI_WDATA;
             end
 
             if (S_AXI_BREADY && S_AXI_BVALID) begin

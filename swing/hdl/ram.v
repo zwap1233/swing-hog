@@ -16,7 +16,7 @@ module ram #(
     output reg [DATA_WIDTH-1:0] o_data_b
 );
 
-    reg [DATA_WIDTH-1:0] ram[ADDR_WIDTH^2];
+    reg [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     integer i;
 
     always @(posedge i_clk) begin
@@ -28,7 +28,7 @@ module ram #(
         end
     end
 
-    always @(posedge clk) begin
+    always @(posedge i_clk) begin
         if (i_enb) o_data_b <= ram[i_addr_b];
     end
 
