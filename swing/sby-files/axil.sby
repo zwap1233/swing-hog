@@ -1,16 +1,15 @@
 [tasks]
-full bmc prove cover : default
-bmc
+prove : default
 cover
-prove
 
 [options]
 cover: mode cover
+cover: depth 60
 prove: mode prove
-bmc: mode bmc
+prove: depth 40
 
 [engines]
-smtbmc boolector
+smtbmc yices
 
 [script]
 read -formal ram.v

@@ -1,0 +1,59 @@
+[*]
+[*] GTKWave Analyzer v4.0.0-prealpha (132a086) (w)1999-2022 BSI
+[*] Thu Sep 10 19:48:18 2026
+[*]
+[dumpfile] "/home/wouter/Workspace/swing-hog/swing/trace.vcd"
+[dumpfile_mtime] "Thu Sep 10 14:34:43 2026"
+[dumpfile_size] 355325311
+[savefile] "/home/wouter/Workspace/swing-hog/swing/gtk_wave_save.gtkw"
+[timestart] 2500
+[size] 1427 1355
+[pos] -1 -1
+*-15.000000 2504 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+[treeopen] TOP.
+[treeopen] TOP.axil_top.
+[sst_width] 297
+[signals_width] 168
+[sst_expanded] 1
+[sst_vpaned_height] 413
+@28
+[color] 1
+TOP.axil_top.s00_axi_aclk
+TOP.axil_top.s00_axi_aresetn
+@200
+-
+@22
+[color] 2
+TOP.axil_top.s00_axi_awaddr[7:0]
+@28
+[color] 3
+TOP.axil_top.s00_axi_awready
+[color] 5
+TOP.axil_top.s00_axi_awvalid
+@200
+-
+@22
+[color] 2
+TOP.axil_top.s00_axi_wdata[31:0]
+[color] 2
+TOP.axil_top.s00_axi_wstrb[3:0]
+@28
+[color] 3
+TOP.axil_top.s00_axi_wready
+[color] 5
+TOP.axil_top.s00_axi_wvalid
+@200
+-
+@28
+[color] 2
+TOP.axil_top.s00_axi_bresp[1:0]
+[color] 3
+TOP.axil_top.s00_axi_bready
+[color] 5
+TOP.axil_top.s00_axi_bvalid
+@200
+-
+@29
+TOP.axil_top.axil_interface_S00.w_addr_valid
+[pattern_trace] 1
+[pattern_trace] 0

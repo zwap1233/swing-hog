@@ -43,7 +43,7 @@ module faxil_slave #(
     parameter [0:0] F_OPT_XILINX = 1'b1,
     // F_OPT_WRITE_ONLY, if set, will assume the master is always idle on
     // te read channel, allowing you to test/focus on the write interface
-    parameter [0:0] F_OPT_WRITE_ONLY  = 1'b1,
+    parameter [0:0] F_OPT_WRITE_ONLY  = 1'b0,
     // F_OPT_READ_ONLY, if set, will assume the master is always idle on
     // the write channel, while asserting that all of the associated returns
     // and counters are zero
@@ -390,7 +390,7 @@ module faxil_slave #(
                 if ((!i_axi_reset_n) || (!i_axi_wvalid) || (i_axi_wready) || (i_axi_bvalid))
                     f_axi_wstall <= 0;
                 else if ((f_axi_wr_outstanding >= f_axi_awr_outstanding)
-            &&(!i_axi_awvalid && i_axi_wvalid))
+                        &&(!i_axi_awvalid && i_axi_wvalid))
                     // If we are waiting for the write address channel
                     // to be valid, then don't count stalls
                     f_axi_wstall <= 0;

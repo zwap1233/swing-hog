@@ -30,10 +30,10 @@ int main(int argc, char** argv, char** env) {
 	uint32_t orig_data[16];
 	for (int i = 0; i < 16; i++) orig_data[i] = (i + 3) << 24 | (i + 2) << 16 | (i + 1) << 8 | i;
 
-	axil->write_buf(0x0, orig_data, 16);
+	axil->write_buf(0x2, orig_data, 16);
 
 	uint32_t new_data[16];
-	axil->read_buf(0x0, new_data, 16);
+	axil->read_buf(0x2, new_data, 16);
 
 	printf("Original data:\n");
 	print_buf(0, orig_data, 16);

@@ -36,8 +36,14 @@ code:
 run: $(SIM)
 	./$(SIM)
 
-wave: run
+wave:
 	surfer -s trace.surf.ron trace.vcd
+
+fwave:
+	surfer ./sby-build/axil_prove/engine_0/trace.vcd
+
+gtk:
+	gtkwave ./trave.vcd
 
 clean:
 	rm -rf $(OBJDIR) trace.vcd sby-build
