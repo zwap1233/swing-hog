@@ -66,7 +66,7 @@ module axil_interface #(
     input wire S_AXI_ARVALID,
     // Read address ready. This signal indicates that the slave is
     // ready to accept an address and associated control signals.
-    output reg S_AXI_ARREADY,
+    output wire S_AXI_ARREADY,
     // Read data (issued by slave)
     output reg [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
     // Read response. This signal indicates the status of the
@@ -82,46 +82,46 @@ module axil_interface #(
     // NOTE: using a register instead of block ram to simplefy things, this
     // will not work on the chip because this will use distributed ram of
     // which there isnt enough available
-    reg [C_S_AXI_DATA_WIDTH-1:0] ram[2**8];
+
+    // reg [C_S_AXI_DATA_WIDTH-1:0] ram[2**8];
 
     //Instantiate block ram
-    // wire ram_w_en, ram_r_en;
-    // wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
-    // reg [C_S_AXI_ADDR_WIDTH-1:0] ram_w_addr;
-    // reg [C_S_AXI_ADDR_WIDTH-1:0] ram_r_addr;
-    // wire [C_S_AXI_DATA_WIDTH-1:0] ram_w_data;
-    // wire [C_S_AXI_DATA_WIDTH-1:0] ram_r_data;
-    //
-    // reg w_addr_valid;
-    //
-    // ram #(
-    //     .DATA_WIDTH(C_S_AXI_DATA_WIDTH),
-    //     .ADDR_WIDTH(C_S_AXI_ADDR_WIDTH)
-    // ) ram_0 (
-    //     .i_clk(S_AXI_ACLK),
-    //     .i_ena(ram_w_en),
-    //     .i_wea(ram_wstrb),
-    //     .i_addr_a(ram_w_addr),
-    //     .i_data_a(ram_w_data),
-    //     .i_enb(ram_r_en),
-    //     .o_data_b(ram_r_data),
-    //     .i_addr_b(ram_r_addr)
-    // );
-    //
-    // assign ram_w_en   = (S_AXI_WVALID && S_AXI_WREADY) && w_addr_valid;
-    // assign ram_wstrb = S_AXI_WSTRB;
-    // assign ram_w_data = S_AXI_WDATA;
+    wire ram_w_en, ram_r_en;
+    wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
+    reg [C_S_AXI_ADDR_WIDTH-1:0] ram_w_addr;
+    reg [C_S_AXI_ADDR_WIDTH-1:0] ram_r_addr;
+    reg [C_S_AXI_DATA_WIDTH-1:0] ram_w_data;
+    wire [C_S_AXI_DATA_WIDTH-1:0] ram_r_data;
+    ram #(
+        .DATA_WIDTH(C_S_AXI_DATA_WIDTH),
+        .ADDR_WIDTH(C_S_AXI_ADDR_WIDTH)
+    ) ram_0 (
+        .i_clk(S_AXI_ACLK),
+        .i_ena(ram_w_en),
+        .i_wea(ram_wstrb),
+        .i_addr_a(ram_w_addr),
+        .i_data_a(ram_w_data),
+        .i_enb(ram_r_en),
+        .o_data_b(ram_r_data),
+        .i_addr_b(ram_r_addr)
+    );
+
+    //============================= write channel
+
+    reg w_ready;
 
     initial begin
         w_ready = 0;
         S_AXI_BVALID = 0;
     end
 
-    //write channel
-    reg w_ready;
+    //We wait and stall the channel until both the data and address are valid
+    //and only then do we set the ready signals high
+    assign S_AXI_AWREADY = w_ready;
+    assign S_AXI_WREADY  = w_ready;
 
     always @(posedge S_AXI_ACLK) begin
-        if (S_AXI_ARESETN != 1) begin
+        if (!S_AXI_ARESETN) begin
             w_ready <= 0;
         end else begin
             //if w_ready is already high than we need to stall a clock cycle
@@ -137,11 +137,10 @@ module axil_interface #(
         end
     end
 
-    assign S_AXI_AWREADY = w_ready;
-    assign S_AXI_WREADY  = w_ready;
+    assign S_AXI_BRESP = 2'b00;
 
     always @(posedge S_AXI_ACLK) begin
-        if (S_AXI_ARESETN != 1) S_AXI_BVALID <= 0;
+        if (!S_AXI_ARESETN) S_AXI_BVALID <= 0;
         else if (w_ready) S_AXI_BVALID <= 1;
         //BVALID needs to be set low again when the bresp is transfered, if
         //bvalid is already low this wont make a diffrence so checking for bvalid
@@ -152,61 +151,88 @@ module axil_interface #(
         else if (S_AXI_BREADY) S_AXI_BVALID <= 0;
     end
 
-    assign S_AXI_BRESP = 2'b00;
+    assign ram_wstrb = S_AXI_WSTRB;
+    assign ram_w_en  = S_AXI_WVALID && S_AXI_WREADY;
 
-    always @(posedge S_AXI_ACLK) begin
-        if (w_ready) ram[S_AXI_AWADDR] <= S_AXI_WDATA;
-    end
+    always @(posedge S_AXI_ACLK) if (S_AXI_AWREADY && S_AXI_AWVALID) ram_w_addr <= S_AXI_AWADDR;
 
-    //read channel
+    always @(posedge S_AXI_ACLK) if (S_AXI_WREADY && S_AXI_WVALID) ram_w_data <= S_AXI_WDATA;
 
-    localparam R_IDLE = 2'b00, R_S_ADDR = 2'b01, R_S_DATA = 2'b10;
+    //============================= read channel
 
-    initial S_AXI_ARREADY = 1;
     initial S_AXI_RVALID = 0;
 
-    reg [1:0] r_state;
-    initial r_state = R_S_ADDR;
-
+    //transfer data
     always @(posedge S_AXI_ACLK) begin
-        if (S_AXI_ARESETN != 1) begin
-            S_AXI_RVALID  <= 0;
-            S_AXI_ARREADY <= 0;
-
-            r_state <= R_IDLE;
-        end else begin
-            case (r_state)
-                default: begin
-                    S_AXI_ARREADY <= 1;
-                    S_AXI_RVALID <= 0;
-                    r_state <= R_S_ADDR;
-                end
-                R_S_ADDR: begin
-                    if (S_AXI_ARVALID) begin
-                        S_AXI_ARREADY <= 0;
-                        S_AXI_RVALID <= 1;
-                        r_state <= R_S_DATA;
-                    end
-                end
-                R_S_DATA: begin
-                    if (S_AXI_RREADY) begin
-                        S_AXI_ARREADY <= 1;
-                        S_AXI_RVALID <= 0;
-                        r_state <= R_S_ADDR;
-                    end
-                end
-            endcase
+        if (!S_AXI_ARESETN) begin
+            S_AXI_RVALID <= 0;
+        end else if (S_AXI_ARREADY && S_AXI_ARVALID) begin
+            ram_r_addr <= S_AXI_ARADDR;
+            S_AXI_RVALID <= 1;
+        end else if (S_AXI_RREADY && S_AXI_RVALID) begin
+            S_AXI_RDATA <= ram_r_data;
+            S_AXI_RVALID <= 0;
         end
     end
 
-    always @(posedge S_AXI_ACLK) begin
-        if(S_AXI_ARREADY && S_AXI_ARVALID) begin
-            S_AXI_RDATA <= ram[S_AXI_ARADDR];
-        end
-    end
+    //use the cycle in which the address is transfered to fetch the read data
+    //from memory
+    assign ram_r_en = (S_AXI_ARREADY && S_AXI_ARVALID);
 
-    assign S_AXI_RRESP = 2'b00;
+    //the channel is ready for a new transfer when the read data has been
+    //transfered.
+    assign S_AXI_ARREADY = ~S_AXI_RVALID;
+    assign S_AXI_RRESP   = 2'b00;
 
+    //read channel attempt 1
+    //
+    // localparam R_IDLE = 2'b00, R_S_ADDR = 2'b01, R_S_DATA = 2'b10;
+    //
+    // initial S_AXI_ARREADY = 1;
+    // initial S_AXI_RVALID = 0;
+    //
+    // reg [1:0] r_state;
+    // initial r_state = R_S_ADDR;
+    //
+    // always @(posedge S_AXI_ACLK) begin
+    //     if (S_AXI_ARESETN != 1) begin
+    //         S_AXI_RVALID <= 0;
+    //         S_AXI_ARREADY <= 0;
+    //
+    //         r_state <= R_IDLE;
+    //     end else begin
+    //         case (r_state)
+    //             default: begin
+    //                 S_AXI_ARREADY <= 1;
+    //                 S_AXI_RVALID <= 0;
+    //                 r_state <= R_S_ADDR;
+    //             end
+    //             R_S_ADDR: begin
+    //                 if (S_AXI_ARVALID) begin
+    //                     S_AXI_ARREADY <= 0;
+    //                     S_AXI_RVALID <= 1;
+    //                     r_state <= R_S_DATA;
+    //                 end
+    //             end
+    //             R_S_DATA: begin
+    //                 if (S_AXI_RREADY) begin
+    //                     S_AXI_ARREADY <= 1;
+    //                     S_AXI_RVALID <= 0;
+    //                     r_state <= R_S_ADDR;
+    //                 end
+    //             end
+    //         endcase
+    //     end
+    // end
+    //
+    // always @(posedge S_AXI_ACLK) begin
+    //     if (S_AXI_ARREADY && S_AXI_ARVALID) begin
+    //         S_AXI_RDATA <= ram[S_AXI_ARADDR];
+    //     end
+    // end
+    //
+    // assign S_AXI_RRESP = 2'b00;
+    //
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     //

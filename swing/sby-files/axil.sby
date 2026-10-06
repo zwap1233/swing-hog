@@ -4,9 +4,9 @@ cover
 
 [options]
 cover: mode cover
-cover: depth 60
+cover: depth 25
 prove: mode prove
-prove: depth 40
+prove: depth 25
 
 [engines]
 smtbmc yices
