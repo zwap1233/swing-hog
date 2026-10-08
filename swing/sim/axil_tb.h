@@ -10,11 +10,16 @@ class axil_tb : public testbench<VT> {
 	using testbench<VT>::testbench;
 
 	void write_buf(const uint32_t addr, const uint32_t* data, const uint32_t len, uint8_t* wstrb = nullptr) {
-		for (int i = 0; i < len; i++) write(addr + i, data[i], wstrb);
+		if(wstrb != nullptr)
+			for (int i = 0; i < len; i++)
+				write(addr + i, data[i], wstrb[i]);
+		else
+			for (int i = 0; i < len; i++)
+				write(addr + i, data[i]);
 	};
 
-	uint32_t write(uint32_t addr, uint32_t data, uint8_t* wstrb = nullptr) {
-		printf("Writing 0x%x to 0x%x\n", data, addr);
+	uint32_t write(uint32_t addr, uint32_t data, uint8_t wstrb = 0xf) {
+		// printf("Writing 0x%x to 0x%x\n", data, addr);
 		/* The Master puts an address on the Write Address channel and data on the
 		 * Write data channel. At the same time it asserts AWVALID and WVALID
 		 * indicating the address and data on the respective channels is valid.
@@ -22,7 +27,7 @@ class axil_tb : public testbench<VT> {
 		 * a response. */
 		this->core->s00_axi_awaddr = addr;
 		this->core->s00_axi_wdata = data;
-		this->core->s00_axi_wstrb = 0xf;  // make sure to set strobe
+		this->core->s00_axi_wstrb = wstrb;  // make sure to set strobe
 		this->core->s00_axi_awvalid = 1;
 		this->core->s00_axi_wvalid = 1;
 		this->core->s00_axi_bready = 1;
@@ -47,7 +52,7 @@ class axil_tb : public testbench<VT> {
 						   // deassert wvalid and or awvalid
 			ticks++;
 			if (ticks >= 10) {
-				printf("Timedout writing\n");
+				// printf("Timedout writing\n");
 				return AXI_SLVERR;
 			}
 			/* Since Valid and Ready signals are present on both the Write Address
@@ -55,7 +60,7 @@ class axil_tb : public testbench<VT> {
 			 * the associated Valid and Ready signals can be deasserted. (After both
 			 * handshakes occur, the slave has the write address and data) */
 
-			printf("Waiting for wready: 0x%x and awready: 0x%x\n", this->core->s00_axi_wready, this->core->s00_axi_awready);
+			// printf("Waiting for wready: 0x%x and awready: 0x%x\n", this->core->s00_axi_wready, this->core->s00_axi_awready);
 
 			aw_transfered = awvalid_tmp ? false : true;
 			w_transfered = wvalid_tmp ? false : true;
@@ -68,10 +73,10 @@ class axil_tb : public testbench<VT> {
 		 * Write response channel. (in this case the response is 2’b00, that being
 		 * ‘OKAY’).*/
 		this->core->eval();
-		printf("Waiting for bvalid\n");
+		// printf("Waiting for bvalid\n");
 		bool res = this->wait([](VT* core) -> bool { return core->s00_axi_bvalid == 1; });
 		if(!res){
-			printf("Waiting for arready timedout\n");
+			// printf("Waiting for arready timedout\n");
 			return 0x0;
 		}
 
@@ -79,7 +84,7 @@ class axil_tb : public testbench<VT> {
 		this->tick();  // response is now transfered
 		this->core->s00_axi_bvalid = 0;
 
-		printf("Finished write\n");
+		// printf("Finished write\n");
 
 		return resp;
 	}
@@ -91,7 +96,7 @@ class axil_tb : public testbench<VT> {
 	}
 
 	uint32_t read(uint32_t addr) {
-		printf("Reading from 0x%x\n", addr);
+		// printf("Reading from 0x%x\n", addr);
 		/* The Master puts an address on the Read Address channel as well as
 		 * asserting ARVALID, indicating the address is valid, and RREADY,
 		 * indicating the master is ready to receive data from the slave. */
@@ -104,7 +109,7 @@ class axil_tb : public testbench<VT> {
 		this->core->eval();
 		bool res = this->wait([](VT* core) -> bool { return core->s00_axi_arready == 1; });
 		if(!res){
-			printf("Waiting for arready timedout\n");
+			// printf("Waiting for arready timedout\n");
 			return 0x0;
 		}
 
@@ -121,7 +126,7 @@ class axil_tb : public testbench<VT> {
 		 * put a response on RRESP, though this does not occur here.*/
 		res = this->wait([](VT* core) -> bool { return core->s00_axi_rvalid == 1; });
 		if(!res){
-			printf("Waiting for rvalid timedout\n");
+			// printf("Waiting for rvalid timedout\n");
 			return 0x0;
 		}
 

@@ -68,7 +68,7 @@ module axil_interface #(
     // ready to accept an address and associated control signals.
     output wire S_AXI_ARREADY,
     // Read data (issued by slave)
-    output reg [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
+    output wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
     // Read response. This signal indicates the status of the
     // read transfer.
     output wire [1 : 0] S_AXI_RRESP,
@@ -86,24 +86,28 @@ module axil_interface #(
     // reg [C_S_AXI_DATA_WIDTH-1:0] ram[2**8];
 
     //Instantiate block ram
-    wire ram_w_en, ram_r_en;
-    wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
+    reg ram_w_en;
+    reg ram_r_en;
+    reg [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
     reg [C_S_AXI_ADDR_WIDTH-1:0] ram_w_addr;
-    reg [C_S_AXI_ADDR_WIDTH-1:0] ram_r_addr;
+    wire [C_S_AXI_ADDR_WIDTH-1:0] ram_r_addr;
     reg [C_S_AXI_DATA_WIDTH-1:0] ram_w_data;
     wire [C_S_AXI_DATA_WIDTH-1:0] ram_r_data;
-    ram #(
-        .DATA_WIDTH(C_S_AXI_DATA_WIDTH),
-        .ADDR_WIDTH(C_S_AXI_ADDR_WIDTH)
-    ) ram_0 (
-        .i_clk(S_AXI_ACLK),
-        .i_ena(ram_w_en),
-        .i_wea(ram_wstrb),
-        .i_addr_a(ram_w_addr),
-        .i_data_a(ram_w_data),
-        .i_enb(ram_r_en),
-        .o_data_b(ram_r_data),
-        .i_addr_b(ram_r_addr)
+
+    ram #() ram_0 (
+        .clk(S_AXI_ACLK),
+
+        .enaA(ram_w_en),
+        .weA(ram_wstrb),
+        .addrA(ram_w_addr),
+        .dinA(ram_w_data),
+        .doutA(),
+
+        .enaB(ram_r_en),
+        .weB(4'b0000),
+        .addrB(ram_r_addr),
+        .dinB(),
+        .doutB(ram_r_data)
     );
 
     //============================= write channel
@@ -112,7 +116,9 @@ module axil_interface #(
 
     initial begin
         w_ready = 0;
+        ram_w_en = 0;
         S_AXI_BVALID = 0;
+        ram_wstrb = 4'b1111;
     end
 
     //We wait and stall the channel until both the data and address are valid
@@ -151,88 +157,53 @@ module axil_interface #(
         else if (S_AXI_BREADY) S_AXI_BVALID <= 0;
     end
 
-    assign ram_wstrb = S_AXI_WSTRB;
-    assign ram_w_en  = S_AXI_WVALID && S_AXI_WREADY;
-
     always @(posedge S_AXI_ACLK) if (S_AXI_AWREADY && S_AXI_AWVALID) ram_w_addr <= S_AXI_AWADDR;
 
-    always @(posedge S_AXI_ACLK) if (S_AXI_WREADY && S_AXI_WVALID) ram_w_data <= S_AXI_WDATA;
+    //ram_w_en is set high after the transfer of the data, this can overlap
+    //with BVALID however it cant be tied to BVALID because BVALID can be high for
+    //more than one clock cycle if BREADY is not also set high.
+    always @(posedge S_AXI_ACLK) begin
+        if (!S_AXI_ARESETN) begin
+            ram_w_en <= 0;
+            ram_wstrb <= 4'b1111;
+        end else if (S_AXI_WREADY && S_AXI_WVALID) begin
+            ram_w_data <= S_AXI_WDATA;
+            ram_wstrb <= S_AXI_WSTRB;
+            ram_w_en   <= 1;
+        end else if (ram_w_en == 1) ram_w_en <= 0;
+    end
 
     //============================= read channel
 
-    initial S_AXI_RVALID = 0;
+    initial begin
+        S_AXI_RVALID = 0;
+        ram_r_en = 0;
+    end
 
     //transfer data
     always @(posedge S_AXI_ACLK) begin
         if (!S_AXI_ARESETN) begin
             S_AXI_RVALID <= 0;
+            ram_r_en <= 0;
         end else if (S_AXI_ARREADY && S_AXI_ARVALID) begin
-            ram_r_addr <= S_AXI_ARADDR;
+            ram_r_en <= 1;
+        end else if (ram_r_en) begin
+            ram_r_en <= 0;
             S_AXI_RVALID <= 1;
         end else if (S_AXI_RREADY && S_AXI_RVALID) begin
-            S_AXI_RDATA <= ram_r_data;
             S_AXI_RVALID <= 0;
         end
     end
 
-    //use the cycle in which the address is transfered to fetch the read data
-    //from memory
-    assign ram_r_en = (S_AXI_ARREADY && S_AXI_ARVALID);
+    assign ram_r_addr = S_AXI_ARADDR;
+    assign S_AXI_RDATA = ram_r_data;
+
 
     //the channel is ready for a new transfer when the read data has been
-    //transfered.
-    assign S_AXI_ARREADY = ~S_AXI_RVALID;
-    assign S_AXI_RRESP   = 2'b00;
+    //transfered and it is not reading from the block ram.
+    assign S_AXI_ARREADY = ~S_AXI_RVALID && ~ram_r_en;
+    assign S_AXI_RRESP = 2'b00;
 
-    //read channel attempt 1
-    //
-    // localparam R_IDLE = 2'b00, R_S_ADDR = 2'b01, R_S_DATA = 2'b10;
-    //
-    // initial S_AXI_ARREADY = 1;
-    // initial S_AXI_RVALID = 0;
-    //
-    // reg [1:0] r_state;
-    // initial r_state = R_S_ADDR;
-    //
-    // always @(posedge S_AXI_ACLK) begin
-    //     if (S_AXI_ARESETN != 1) begin
-    //         S_AXI_RVALID <= 0;
-    //         S_AXI_ARREADY <= 0;
-    //
-    //         r_state <= R_IDLE;
-    //     end else begin
-    //         case (r_state)
-    //             default: begin
-    //                 S_AXI_ARREADY <= 1;
-    //                 S_AXI_RVALID <= 0;
-    //                 r_state <= R_S_ADDR;
-    //             end
-    //             R_S_ADDR: begin
-    //                 if (S_AXI_ARVALID) begin
-    //                     S_AXI_ARREADY <= 0;
-    //                     S_AXI_RVALID <= 1;
-    //                     r_state <= R_S_DATA;
-    //                 end
-    //             end
-    //             R_S_DATA: begin
-    //                 if (S_AXI_RREADY) begin
-    //                     S_AXI_ARREADY <= 1;
-    //                     S_AXI_RVALID <= 0;
-    //                     r_state <= R_S_ADDR;
-    //                 end
-    //             end
-    //         endcase
-    //     end
-    // end
-    //
-    // always @(posedge S_AXI_ACLK) begin
-    //     if (S_AXI_ARREADY && S_AXI_ARVALID) begin
-    //         S_AXI_RDATA <= ram[S_AXI_ARADDR];
-    //     end
-    // end
-    //
-    // assign S_AXI_RRESP = 2'b00;
-    //
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     //
@@ -308,7 +279,7 @@ module axil_interface #(
             assert (faxil_wr_outstanding == (S_AXI_BVALID ? 1 : 0));
             assert (faxil_awr_outstanding == faxil_wr_outstanding);
 
-            assert (faxil_rd_outstanding == (S_AXI_RVALID ? 1 : 0));
+            assert (faxil_rd_outstanding == ((S_AXI_RVALID || ram_r_en) ? 1 : 0));
         end
 
     //
