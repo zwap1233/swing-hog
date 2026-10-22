@@ -2,7 +2,7 @@
 
 source /opt/xilinx/2025.2/Petalinux/settings.sh
 
-PRJ_NAME="blinkos"
+PRJ_NAME="swingos"
 IMG_FOLDER="$(realpath ../$PRJ_NAME/images/linux)"
 
 echo 'Building sdk for $PRJ_NAME'

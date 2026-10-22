@@ -2,7 +2,7 @@
 
 source /opt/xilinx/2025.2/Petalinux/settings.sh
 
-PRJ_NAME="blinkos"
+PRJ_NAME="swingos"
 
 LAST_BIN="$(realpath $(ls -td -- ../bin/*/ | head -n 1))"
 XSA_FILE="$(find $LAST_BIN/*.xsa)"
@@ -14,7 +14,7 @@ echo "Creating petalinux project: $PRJ_NAME"
 echo "BIN folder: $LAST_BIN"
 
 if [ ! -d $PRJ_NAME ]; then #if folder doesnt exist, create project
-    (cd ../$PRJ_NAME; petalinux-create project -n $PRJ_NAME --template zynq)
+    (cd ..; petalinux-create project -n $PRJ_NAME --template zynq)
 fi
 
 (cd ../$PRJ_NAME; petalinux-config --get-hw-description=$XSA_FILE)
