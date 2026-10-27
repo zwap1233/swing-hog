@@ -1,22 +1,31 @@
 
-SRC := $(wildcard src/*.c) $(wildcard src/*.cpp)
-INC := $(wildcard inc/*.h)
+SRC_DIR := src
 INC_DIR := inc
+BUILD_DIR := build
 
-OBJ_DIR := build
+C_SRC := $(shell find -path ./$(SRC_DIR)/*.c)
+CPP_SRC := $(shell find -path ./$(SRC_DIR)/*.cpp)
+OBJS := $(patsubst ./$(SRC_DIR)/%.c, ./$(BUILD_DIR)/%.o, $(C_SRC)) $(patsubst ./$(SRC_DIR)/%.cpp, ./$(BUILD_DIR)/%.o, $(CPP_SRC))
 
-OBJS := $(patsubst %.c, %.o, $(SRC))
+OUT_FILE := driver.bin
 
 .PHONY: all clean
 
-all: $(OBJS)
+all: $(OUT_FILE)
 
-%.o: %.c
-	echo $(SRC)
-	echo $(INC)
-	echo $(INC_DIR)
-	echo $(OBJS)
-	$(CC) -MD -I$(INC_DIR) -o $(OBJ_DIR)/$@ $<
+$(OUT_FILE): $(OBJS)
+	$(CC) -o $@ $^
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	mkdir -p $(dir $@)
+	$(CC) -MD -I$(INC_DIR) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
+	mkdir -p $(dir $@)
+	$(CC) -MD -I$(INC_DIR) -c -o $@ $<
 
 clean:
-	rm -rf *.o *.d
+	rm -rf $(OUT_FILE)
+	rm -rf $(BUILD_DIR)
+
+-include $(OBJS:.o=.d)

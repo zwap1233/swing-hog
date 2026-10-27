@@ -1,6 +1,6 @@
 services:
   yoctocontainer:
-    image: petalinuxcontainer
+    image: swingcontainer
     container_name: swingcontainer
     hostname: swingcontainer
     stdin_open: true
