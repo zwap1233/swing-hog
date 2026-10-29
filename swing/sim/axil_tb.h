@@ -12,10 +12,10 @@ class axil_tb : public testbench<VT> {
 	void write_buf(const uint32_t addr, const uint32_t* data, const uint32_t len, uint8_t* wstrb = nullptr) {
 		if(wstrb != nullptr)
 			for (int i = 0; i < len; i++)
-				write(addr + i, data[i], wstrb[i]);
+				write(addr + i*4, data[i], wstrb[i]);
 		else
 			for (int i = 0; i < len; i++)
-				write(addr + i, data[i]);
+				write(addr + i*4, data[i]);
 	};
 
 	uint32_t write(uint32_t addr, uint32_t data, uint8_t wstrb = 0xf) {
@@ -91,7 +91,7 @@ class axil_tb : public testbench<VT> {
 
 	void read_buf(const uint32_t addr, uint32_t* data, const uint32_t len) {
 		for (int i = 0; i < len; i++) {
-			data[i] = read(addr + i);
+			data[i] = read(addr + i*4);
 		}
 	}
 

@@ -11,7 +11,7 @@ module axil_interface #(
     // Width of S_AXI data bus
     parameter integer C_S_AXI_DATA_WIDTH = 32,
     // Width of S_AXI address bus
-    parameter integer C_S_AXI_ADDR_WIDTH = 8
+    parameter integer C_S_AXI_ADDR_WIDTH = 10
 ) (
     // Users to add ports here
 
@@ -78,6 +78,7 @@ module axil_interface #(
     // Read ready. This signal indicates that the master can
     // accept the read data and response information.
     input wire S_AXI_RREADY
+
 );
     // NOTE: using a register instead of block ram to simplefy things, this
     // will not work on the chip because this will use distributed ram of
@@ -89,8 +90,10 @@ module axil_interface #(
     reg ram_w_en;
     reg ram_r_en;
     reg [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
-    reg [C_S_AXI_ADDR_WIDTH-1:0] ram_w_addr;
-    wire [C_S_AXI_ADDR_WIDTH-1:0] ram_r_addr;
+    //minus 3 because we are throwing the 2 lsb away as the ram isnt byte
+    //addressable.
+    reg [C_S_AXI_ADDR_WIDTH-3:0] ram_w_addr;
+    wire [C_S_AXI_ADDR_WIDTH-3:0] ram_r_addr;
     reg [C_S_AXI_DATA_WIDTH-1:0] ram_w_data;
     wire [C_S_AXI_DATA_WIDTH-1:0] ram_r_data;
 
@@ -157,7 +160,7 @@ module axil_interface #(
         else if (S_AXI_BREADY) S_AXI_BVALID <= 0;
     end
 
-    always @(posedge S_AXI_ACLK) if (S_AXI_AWREADY && S_AXI_AWVALID) ram_w_addr <= S_AXI_AWADDR;
+    always @(posedge S_AXI_ACLK) if (S_AXI_AWREADY && S_AXI_AWVALID) ram_w_addr <= S_AXI_AWADDR[C_S_AXI_ADDR_WIDTH-1:2];
 
     //ram_w_en is set high after the transfer of the data, this can overlap
     //with BVALID however it cant be tied to BVALID because BVALID can be high for
@@ -195,7 +198,7 @@ module axil_interface #(
         end
     end
 
-    assign ram_r_addr = S_AXI_ARADDR;
+    assign ram_r_addr = S_AXI_ARADDR[C_S_AXI_ADDR_WIDTH-1:2];
     assign S_AXI_RDATA = ram_r_data;
 
 
