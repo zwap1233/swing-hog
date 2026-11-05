@@ -1,0 +1,24 @@
+# /etc/network/interfaces -- configuration file for ifup(8), ifdown(8)
+
+#loopback interface
+auto lo
+iface lo inet loopback
+
+# Wireless interfaces
+iface wlan0 inet dhcp
+        wireless_mode managed
+        wireless_essid any
+        wpa-driver wext
+        wpa-conf /etc/wpa_supplicant.conf
+
+iface atml0 inet dhcp
+
+# Wired or wireless interfaces including predictable names
+auto enx000a35001e53
+iface enx000a35001e53 inet static
+        address 192.168.99.100
+        netmask 255.255.255.0
+        gateway 192.168.99.1
+
+iface eth1 inet dhcp
+
