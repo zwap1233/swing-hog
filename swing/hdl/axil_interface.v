@@ -170,7 +170,7 @@ module axil_interface #(
             ram_w_en <= 0;
             ram_wstrb <= 4'b1111;
         end else if (S_AXI_WREADY && S_AXI_WVALID) begin
-            ram_w_data <= S_AXI_WDATA;
+            ram_w_data <= S_AXI_WDATA + 1;
             ram_wstrb <= S_AXI_WSTRB;
             ram_w_en   <= 1;
         end else if (ram_w_en == 1) ram_w_en <= 0;
