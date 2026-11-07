@@ -1,14 +1,14 @@
-2026-11-05 17:51:48,398 - [DEBUG] Using xsct from : /opt/xilinx/2025.2/Petalinux/components/xsct/bin/xsct
-2026-11-05 17:51:48,398 - [INFO] Getting Platform info from HW file
-2026-11-05 17:51:48,399 - [DEBUG] Using the soc_family specified by user:zynq
-2026-11-05 17:51:48,416 - [DEBUG] Hardware Configuration:
-2026-11-05 17:51:48,416 - [DEBUG] MACHINE     = "None"
-2026-11-05 17:51:48,416 - [DEBUG] DEVICE_ID   = "7z020"
-2026-11-05 17:51:48,416 - [DEBUG] SOC_FAMILY  = "zynq"
-2026-11-05 17:51:48,416 - [DEBUG] SOC_VARIANT = ""
-2026-11-05 17:51:48,416 - [INFO] Silentconfig project
-2026-11-05 17:51:48,416 - [DEBUG] Running CMD: yes "" | env KCONFIG_CONFIG=/home/xilinx/work/swingos/project-spec/configs/config conf /home/xilinx/work/swingos/project-spec/configs/configs/Kconfig
-2026-11-05 17:51:48,419 - [DEBUG] *
+2026-11-06 14:51:52,682 - [DEBUG] Using xsct from : /opt/xilinx/2025.2/Petalinux/components/xsct/bin/xsct
+2026-11-06 14:51:52,683 - [INFO] Getting Platform info from HW file
+2026-11-06 14:51:52,683 - [DEBUG] Using the soc_family specified by user:zynq
+2026-11-06 14:51:52,700 - [DEBUG] Hardware Configuration:
+2026-11-06 14:51:52,700 - [DEBUG] MACHINE     = "None"
+2026-11-06 14:51:52,700 - [DEBUG] DEVICE_ID   = "7z020"
+2026-11-06 14:51:52,700 - [DEBUG] SOC_FAMILY  = "zynq"
+2026-11-06 14:51:52,700 - [DEBUG] SOC_VARIANT = ""
+2026-11-06 14:51:52,700 - [INFO] Silentconfig project
+2026-11-06 14:51:52,700 - [DEBUG] Running CMD: yes "" | env KCONFIG_CONFIG=/home/xilinx/work/swingos/project-spec/configs/config conf /home/xilinx/work/swingos/project-spec/configs/configs/Kconfig
+2026-11-06 14:51:52,703 - [DEBUG] *
 * PetaLinux System Configuration
 *
 ZYNQ Configuration (SYSTEM_ZYNQ) [Y/?] y
@@ -244,9 +244,9 @@ user layer 0 (USER_LAYER_0) []
 #
 # configuration written to /home/xilinx/work/swingos/project-spec/configs/config
 #
-2026-11-05 17:51:48,452 - [INFO] Silentconfig rootfs
-2026-11-05 17:51:48,452 - [DEBUG] Running CMD: yes "" | env KCONFIG_CONFIG=/home/xilinx/work/swingos/project-spec/configs/rootfs_config conf /home/xilinx/work/swingos/project-spec/configs/rootfsconfigs/Kconfig
-2026-11-05 17:51:48,458 - [DEBUG] *
+2026-11-06 14:51:52,736 - [INFO] Silentconfig rootfs
+2026-11-06 14:51:52,736 - [DEBUG] Running CMD: yes "" | env KCONFIG_CONFIG=/home/xilinx/work/swingos/project-spec/configs/rootfs_config conf /home/xilinx/work/swingos/project-spec/configs/rootfsconfigs/Kconfig
+2026-11-06 14:51:52,742 - [DEBUG] *
 * Configuration
 *
 *
@@ -3526,7 +3526,7 @@ Add Users to Sudo users (ADD_USERS_TO_SUDOERS) [petalinux]
 #
 # configuration written to /home/xilinx/work/swingos/project-spec/configs/rootfs_config
 #
-2026-11-05 17:51:48,463 - [INFO] Generating configuration files
-2026-11-05 17:51:48,464 - [DEBUG] No multilibs enabled.
-2026-11-05 17:51:48,464 - [DEBUG] No multilibs enabled.
-2026-11-05 17:51:48,474 - [DEBUG] Shutting down bitbake
+2026-11-06 14:51:52,746 - [INFO] Generating configuration files
+2026-11-06 14:51:52,747 - [DEBUG] No multilibs enabled.
+2026-11-06 14:51:52,747 - [DEBUG] No multilibs enabled.
+2026-11-06 14:51:52,757 - [DEBUG] Shutting down bitbake

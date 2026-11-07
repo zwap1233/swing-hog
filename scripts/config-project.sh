@@ -10,7 +10,7 @@ BIT_FILE="$(find $LAST_BIN/*.bit)"
 
 IMG_FOLDER="$(realpath ../$PRJ_NAME/images/linux)"
 
-echo "Creating petalinux project: $PRJ_NAME"
+echo "Creating/config petalinux project: $PRJ_NAME"
 echo "BIN folder: $LAST_BIN"
 
 if [ ! -d $PRJ_NAME ]; then #if folder doesnt exist, create project

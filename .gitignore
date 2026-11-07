@@ -104,3 +104,4 @@ swing/obj_dir/
 swing/sby-build/
 **.vcd
 
+*.bit

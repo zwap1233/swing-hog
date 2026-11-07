@@ -27,9 +27,11 @@ module ram #(
     output reg [DATA_WIDTH-1:0] doutB
 );
 
-
     // Core Memory
     reg [DATA_WIDTH-1:0] ram_block[(2**ADDR_WIDTH)-1:0];
+
+    integer j;
+    initial for (j = 0; j < 2 ** ADDR_WIDTH; j = j + 1) ram_block[j] = 32'hf;
 
     integer ia;
     // Port-A Operation

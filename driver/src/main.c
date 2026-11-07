@@ -51,17 +51,27 @@ int main() {
 	}
 
 	uint32_t orig_data[16];
-	for (int i = 0; i < 16; i++) orig_data[i] = (i + 3) << 24 | (i + 2) << 16 | (i + 1) << 8 | i;
-	for (int i = 0; i < 16; i++) regs[i] = orig_data[i];
+	for (int i = 0; i < 16; i++) orig_data[i] = regs[i];
 
-	uint32_t new_data[16];
-	for (int i = 0; i < 16; i++) new_data[i] = regs[i];
-
-	printf("\nOriginal data:\n");
+	printf("Original Data, before write:\n");
 	print_buf(0, orig_data, 16);
 
-	printf("New data:\n");
-	print_buf(0, new_data, 16);
+	uint32_t write_data[16];
+	for (int i = 0; i < 16; i++) write_data[i] = (i + 3) << 24 | (i + 2) << 16 | (i + 1) << 8 | i;
+	for (int i = 0; i < 16; i++) regs[i] = write_data[i];
+
+	uint32_t read_data[16];
+
+	printf("read_data, before write:\n");
+	print_buf(0, read_data, 16);
+
+	for (int i = 0; i < 16; i++) read_data[i] = regs[i];
+
+	printf("write data:\n");
+	print_buf(0, write_data, 16);
+
+	printf("read data:\n");
+	print_buf(0, read_data, 16);
 
 	return 0;
 }
