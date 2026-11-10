@@ -2,7 +2,7 @@
 
 `timescale 1 ns / 1 ps
 
-module axil_top #(
+module swing #(
     // Users to add parameters here
 
     // User parameters ends
@@ -42,6 +42,36 @@ module axil_top #(
     output wire s00_axi_rvalid,
     input wire s00_axi_rready
 );
+
+
+    wire ram_enaA;
+    wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_weA;
+    wire [C_S00_AXI_ADDR_WIDTH-1:0] ram_addrA;
+    wire [C_S00_AXI_DATA_WIDTH-1:0] ram_dinA;
+    wire [C_S00_AXI_DATA_WIDTH-1:0] ram_doutA;
+
+    wire ram_enaB;
+    wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_weB;
+    wire [C_S00_AXI_ADDR_WIDTH-1:0] ram_addrB;
+    wire [C_S00_AXI_DATA_WIDTH-1:0] ram_dinB;
+    wire [C_S00_AXI_DATA_WIDTH-1:0] ram_doutB;
+
+    ram #() ram_0 (
+        .clk(S_AXI_ACLK),
+
+        .enaA (ram_enaA),
+        .weA  (ram_weA),
+        .addrA(ram_addrA),
+        .dinA (ram_dinA),
+        .doutA(ram_doutA),
+
+        .enaB (ram_enaB),
+        .weB  (ram_weB),
+        .addrB(ram_addrB),
+        .dinB (ram_dinB),
+        .doutB(ram_doutB)
+    );
+
     // Instantiation of Axi Bus Interface S00_AXI
     axil_interface #(
         .C_S_AXI_DATA_WIDTH(C_S00_AXI_DATA_WIDTH),
@@ -67,7 +97,13 @@ module axil_top #(
         .S_AXI_RDATA(s00_axi_rdata),
         .S_AXI_RRESP(s00_axi_rresp),
         .S_AXI_RVALID(s00_axi_rvalid),
-        .S_AXI_RREADY(s00_axi_rready)
+        .S_AXI_RREADY(s00_axi_rready),
+
+        .ram_en(ram_enaA),
+        .ram_wen(ram_weA),
+        .ram_addr(ram_addrA),
+        .ram_din(ram_dinA),
+        .ram_dout(ram_doutA)
     );
 
 

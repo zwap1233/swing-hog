@@ -3,13 +3,12 @@
 
 module ram #(
     //--------------------------------------------------------------------------
-    parameter NUM_COL = 4,
-    parameter COL_WIDTH = 8,
     parameter ADDR_WIDTH = 8,
-    parameter DATA_WIDTH = NUM_COL * COL_WIDTH  // Data Width in bits
+    parameter DATA_WIDTH = 32,  // Data Width in bits
+    parameter COL_WIDTH = 8,
+    parameter NUM_COL = DATA_WIDTH / COL_WIDTH
     //----------------------------------------------------------------------
 ) (
-
     //Ram is only word addressable and not byte addressable.
 
     input clk,
@@ -26,7 +25,6 @@ module ram #(
     input [DATA_WIDTH-1:0] dinB,
     output reg [DATA_WIDTH-1:0] doutB
 );
-
     // Core Memory
     reg [DATA_WIDTH-1:0] ram_block[(2**ADDR_WIDTH)-1:0];
 

@@ -3,21 +3,12 @@
 `timescale 1 ns / 1 ps
 
 module axil_interface #(
-    // Users to add parameters here
-
-    // User parameters ends
-    // Do not modify the parameters beyond this line
 
     // Width of S_AXI data bus
     parameter integer C_S_AXI_DATA_WIDTH = 32,
     // Width of S_AXI address bus
     parameter integer C_S_AXI_ADDR_WIDTH = 10
 ) (
-    // Users to add ports here
-
-    // User ports ends
-    // Do not modify the ports beyond this line
-
     // Global Clock Signal
     input wire S_AXI_ACLK,
     // Global Reset Signal. This Signal is Active LOW
@@ -77,7 +68,14 @@ module axil_interface #(
     output reg S_AXI_RVALID,
     // Read ready. This signal indicates that the master can
     // accept the read data and response information.
-    input wire S_AXI_RREADY
+    input wire S_AXI_RREADY,
+
+    //ram_channel
+    output wire ram_en,
+    output wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wen,
+    output wire [C_S_AXI_ADDR_WIDTH-1:0] ram_addr,
+    input wire [C_S_AXI_DATA_WIDTH-1:0] ram_din,
+    output wire [C_S_AXI_DATA_WIDTH-1:0] ram_dout
 
 );
     // NOTE: using a register instead of block ram to simplefy things, this
