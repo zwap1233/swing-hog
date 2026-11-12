@@ -79,6 +79,17 @@ module axil_interface #(
 
 );
 
+    // NOTE: The read and write channel need to share a single ram channel.
+    // The most pressing case is when, both ARREADY & ARVALID and AWREADY
+    // & AWVALID because both channels will try to read/write to ram in the
+    // next clock cycle. To solve this, the read channel should stall one
+    // clock cycle.
+    reg ram_w_en;
+    reg ram_r_en;
+
+    //ram should be enabled if either it needs to read or write
+    assign ram_en = ram_w_en || ram_r_en;
+
     //============================= write channel
 
     reg w_ready;
@@ -106,7 +117,6 @@ module axil_interface #(
             //if BREADY is high than that wont matter because the transaction
             //will be completed this clock edge and the bus if free to
             //transfer this transaction
-            //TODO add condition to block if memory is busy
             w_ready <= !w_ready && (S_AXI_AWVALID && S_AXI_WVALID) && (!S_AXI_BVALID || S_AXI_BREADY);
         end
     end
@@ -143,6 +153,7 @@ module axil_interface #(
 
     //============================= read channel
 
+    reg [C_S_AXI_ADDR_WIDTH-1:0] r_addr_buffer;
     initial begin
         S_AXI_RVALID = 0;
         ram_r_en = 0;
@@ -164,7 +175,7 @@ module axil_interface #(
     end
 
     assign ram_r_addr = S_AXI_ARADDR[C_S_AXI_ADDR_WIDTH-1:2];
-    assign S_AXI_RDATA = ram_r_data;
+    assign S_AXI_RDATA = ram_dout;
 
 
     //the channel is ready for a new transfer when the read data has been
@@ -237,8 +248,9 @@ module axil_interface #(
 
     );
 
+    //cant read and write to ram at the same time.
     always @(posedge S_AXI_ACLK)
-        assert(!((S_AXI_WVALID && S_AXI_WREADY) && (S_AXI_ARVALID && S_AXI_ARREADY)))
+        assert(!(ram_r_en && ram_w_en))
 
     always_comb
         if (OPT_SKIDBUFFER) begin
