@@ -78,38 +78,6 @@ module axil_interface #(
     output wire [C_S_AXI_DATA_WIDTH-1:0] ram_dout
 
 );
-    // NOTE: using a register instead of block ram to simplefy things, this
-    // will not work on the chip because this will use distributed ram of
-    // which there isnt enough available
-
-    // reg [C_S_AXI_DATA_WIDTH-1:0] ram[2**8];
-
-    //Instantiate block ram
-    reg ram_w_en;
-    reg ram_r_en;
-    reg [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wstrb;
-    //minus 3 because we are throwing the 2 lsb away as the ram isnt byte
-    //addressable.
-    reg [C_S_AXI_ADDR_WIDTH-3:0] ram_w_addr;
-    wire [C_S_AXI_ADDR_WIDTH-3:0] ram_r_addr;
-    reg [C_S_AXI_DATA_WIDTH-1:0] ram_w_data;
-    wire [C_S_AXI_DATA_WIDTH-1:0] ram_r_data;
-
-    ram #() ram_0 (
-        .clk(S_AXI_ACLK),
-
-        .enaA(ram_w_en),
-        .weA(ram_wstrb),
-        .addrA(ram_w_addr),
-        .dinA(ram_w_data),
-        .doutA(),
-
-        .enaB(ram_r_en),
-        .weB(4'b0000),
-        .addrB(ram_r_addr),
-        .dinB(),
-        .doutB(ram_r_data)
-    );
 
     //============================= write channel
 
@@ -117,9 +85,7 @@ module axil_interface #(
 
     initial begin
         w_ready = 0;
-        ram_w_en = 0;
         S_AXI_BVALID = 0;
-        ram_wstrb = 4'b1111;
     end
 
     //We wait and stall the channel until both the data and address are valid
@@ -140,6 +106,7 @@ module axil_interface #(
             //if BREADY is high than that wont matter because the transaction
             //will be completed this clock edge and the bus if free to
             //transfer this transaction
+            //TODO add condition to block if memory is busy
             w_ready <= !w_ready && (S_AXI_AWVALID && S_AXI_WVALID) && (!S_AXI_BVALID || S_AXI_BREADY);
         end
     end
@@ -269,6 +236,9 @@ module axil_interface #(
         .f_axi_awr_outstanding(faxil_awr_outstanding)
 
     );
+
+    always @(posedge S_AXI_ACLK)
+        assert(!((S_AXI_WVALID && S_AXI_WREADY) && (S_AXI_ARVALID && S_AXI_ARREADY)))
 
     always_comb
         if (OPT_SKIDBUFFER) begin
