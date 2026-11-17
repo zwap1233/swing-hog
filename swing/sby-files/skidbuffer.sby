@@ -1,0 +1,19 @@
+[tasks]
+prove : default
+cover
+
+[options]
+cover: mode cover
+cover: depth 25
+prove: mode prove
+prove: depth 25
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal skidbuffer.v
+prep -top skidbuffer
+
+[files]
+../hdl/skidbuffer.v
