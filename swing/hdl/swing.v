@@ -45,19 +45,22 @@ module swing #(
 
 
     wire ram_enaA;
-    wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_weA;
-    wire [C_S00_AXI_ADDR_WIDTH-1:0] ram_addrA;
+    wire [(C_S00_AXI_DATA_WIDTH/8)-1:0] ram_weA;
+    wire [C_S00_AXI_ADDR_WIDTH-3:0] ram_addrA;
     wire [C_S00_AXI_DATA_WIDTH-1:0] ram_dinA;
     wire [C_S00_AXI_DATA_WIDTH-1:0] ram_doutA;
 
     wire ram_enaB;
-    wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_weB;
-    wire [C_S00_AXI_ADDR_WIDTH-1:0] ram_addrB;
+    wire [(C_S00_AXI_DATA_WIDTH/8)-1:0] ram_weB;
+    wire [C_S00_AXI_ADDR_WIDTH-3:0] ram_addrB;
     wire [C_S00_AXI_DATA_WIDTH-1:0] ram_dinB;
     wire [C_S00_AXI_DATA_WIDTH-1:0] ram_doutB;
 
-    ram #() ram_0 (
-        .clk(S_AXI_ACLK),
+    bram #(
+        .ADDR_WIDTH(C_S00_AXI_ADDR_WIDTH-2), //-2 because the bram isnt byte addressable
+        .DATA_WIDTH(C_S00_AXI_DATA_WIDTH)
+    ) bram_0 (
+        .clk(s00_axi_aclk),
 
         .enaA (ram_enaA),
         .weA  (ram_weA),

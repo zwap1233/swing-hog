@@ -1,7 +1,7 @@
 
 `timescale 1 ns / 1 ps
 
-module ram #(
+module bram #(
     //--------------------------------------------------------------------------
     parameter ADDR_WIDTH = 8,
     parameter DATA_WIDTH = 32,  // Data Width in bits

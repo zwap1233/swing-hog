@@ -2,7 +2,7 @@
 #include <verilated.h>
 #include <verilated_vcd_c.h>
 
-#include "Vaxil_top.h"
+#include "Vswing.h"
 #include "axil_tb.h"
 
 void print_buf(uint32_t addr, uint32_t* data, int len) {
@@ -25,7 +25,7 @@ int main(int argc, char** argv, char** env) {
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
 
-	axil_tb<Vaxil_top>* axil = new axil_tb<Vaxil_top>();
+	axil_tb<Vswing>* axil = new axil_tb<Vswing>();
 
 	uint32_t orig_data[16];
 	for (int i = 0; i < 16; i++) orig_data[i] = (i + 3) << 24 | (i + 2) << 16 | (i + 1) << 8 | i;
@@ -35,23 +35,23 @@ int main(int argc, char** argv, char** env) {
 	uint32_t new_data[16];
 	axil->read_buf(0x0, new_data, 16);
 
-	printf("\nOriginal data:\n");
+	printf("\nWrite data:\n");
 	print_buf(0, orig_data, 16);
-	printf("New data:\n");
+	printf("Read data:\n");
 	print_buf(0, new_data, 16);
 
-	uint8_t strb[16];
-	for (int i = 0; i < 16; i++) strb[i] = 0b0011;
-
-	uint32_t empty[16];
-	for(int i = 0; i < 16; i++) empty[i] = 0x0;
-
-	axil->write_buf(0x0, empty, 16); //clear buffer
-	axil->write_buf(0x0, orig_data, 16, strb);
-	
-	printf("Strobed data:\n");
-	axil->read_buf(0x0, new_data, 16);
-	print_buf(0, new_data, 16);
-
+	// uint8_t strb[16];
+	// for (int i = 0; i < 16; i++) strb[i] = 0b1111;
+	//
+	// uint32_t empty[16];
+	// for(int i = 0; i < 16; i++) empty[i] = 0x0;
+	//
+	// axil->write_buf(0x0, empty, 16); //clear buffer
+	// axil->write_buf(0x0, orig_data, 16, strb);
+	//
+	// printf("Strobed data:\n");
+	// axil->read_buf(0x0, new_data, 16);
+	// print_buf(0, new_data, 16);
+	//
 	return EXIT_SUCCESS;
 }

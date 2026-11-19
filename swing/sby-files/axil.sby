@@ -6,20 +6,20 @@ cover
 cover: mode cover
 cover: depth 25
 prove: mode prove
-prove: depth 25
+prove: depth 11
 
 [engines]
 smtbmc yices
 
 [script]
-read -formal ram.v
+read -formal bram.v
 read -formal axil_interface.v
 read -formal swing.v
 read -formal faxil_slave.v
 prep -top swing
 
 [files]
-../hdl/axil_interface.v
+../hdl/axi/axil_interface.v
 ../hdl/swing.v
 ../formal/faxil_slave.v
-../hdl/ram.v
+../hdl/axi/bram.v

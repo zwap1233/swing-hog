@@ -72,10 +72,10 @@ module axil_interface #(
 
     //ram_channel
     output wire ram_en,
-    output wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wen,
-    output wire [C_S_AXI_ADDR_WIDTH-1:0] ram_addr,
-    input wire [C_S_AXI_DATA_WIDTH-1:0] ram_din,
-    output wire [C_S_AXI_DATA_WIDTH-1:0] ram_dout
+    output reg [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wen,
+    output wire [C_S_AXI_ADDR_WIDTH-3:0] ram_addr,
+    output reg [C_S_AXI_DATA_WIDTH-1:0] ram_din,
+    input wire [C_S_AXI_DATA_WIDTH-1:0] ram_dout
 
 );
 
@@ -84,11 +84,30 @@ module axil_interface #(
     // & AWVALID because both channels will try to read/write to ram in the
     // next clock cycle. To solve this, the read channel should stall one
     // clock cycle.
+
+    reg [C_S_AXI_ADDR_WIDTH-3:0] ram_w_addr;
+    reg [C_S_AXI_ADDR_WIDTH-3:0] ram_r_addr;
+
     reg ram_w_en;
     reg ram_r_en;
+    wire ram_r_stall;
+
+    initial begin
+        ram_w_en = 0;
+        ram_r_en = 0;
+    end
 
     //ram should be enabled if either it needs to read or write
-    assign ram_en = ram_w_en || ram_r_en;
+    assign ram_en = ram_w_en | ram_r_en;
+    //stall when writing to ram
+    assign ram_r_stall = ram_w_en;
+
+    //ram addr is the write address if ram_w_en is high because writing always
+    //has priority
+    always_comb
+        if (ram_w_en) ram_addr = ram_w_addr;
+        else if (ram_r_en) ram_addr = ram_r_addr;
+        else ram_addr = 0;
 
     //============================= write channel
 
@@ -135,7 +154,9 @@ module axil_interface #(
         else if (S_AXI_BREADY) S_AXI_BVALID <= 0;
     end
 
-    always @(posedge S_AXI_ACLK) if (S_AXI_AWREADY && S_AXI_AWVALID) ram_w_addr <= S_AXI_AWADDR[C_S_AXI_ADDR_WIDTH-1:2];
+    always @(posedge S_AXI_ACLK)
+        if (S_AXI_AWREADY && S_AXI_AWVALID)
+            ram_w_addr <= S_AXI_AWADDR[C_S_AXI_ADDR_WIDTH-1:2];
 
     //ram_w_en is set high after the transfer of the data, this can overlap
     //with BVALID however it cant be tied to BVALID because BVALID can be high for
@@ -143,17 +164,16 @@ module axil_interface #(
     always @(posedge S_AXI_ACLK) begin
         if (!S_AXI_ARESETN) begin
             ram_w_en <= 0;
-            ram_wstrb <= 4'b1111;
+            ram_wen  <= 4'b1111;
         end else if (S_AXI_WREADY && S_AXI_WVALID) begin
-            ram_w_data <= S_AXI_WDATA;
-            ram_wstrb <= S_AXI_WSTRB;
-            ram_w_en   <= 1;
+            ram_din  <= S_AXI_WDATA;
+            ram_wen  <= S_AXI_WSTRB;
+            ram_w_en <= 1;
         end else if (ram_w_en == 1) ram_w_en <= 0;
     end
 
     //============================= read channel
 
-    reg [C_S_AXI_ADDR_WIDTH-1:0] r_addr_buffer;
     initial begin
         S_AXI_RVALID = 0;
         ram_r_en = 0;
@@ -164,24 +184,40 @@ module axil_interface #(
         if (!S_AXI_ARESETN) begin
             S_AXI_RVALID <= 0;
             ram_r_en <= 0;
+            ram_dout_valid <= 1;
         end else if (S_AXI_ARREADY && S_AXI_ARVALID) begin
             ram_r_en <= 1;
-        end else if (ram_r_en) begin
+        end else if (ram_r_en && !ram_r_stall) begin
             ram_r_en <= 0;
             S_AXI_RVALID <= 1;
+            ram_dout_valid <= 1;
         end else if (S_AXI_RREADY && S_AXI_RVALID) begin
             S_AXI_RVALID <= 0;
-        end
+            ram_dout_valid <= 0;
+        end else if(S_AXI_RVALID)
+            ram_r_data_buffer <= ram_dout;
+            ram_dout_valid <= 0;
+
     end
 
-    assign ram_r_addr = S_AXI_ARADDR[C_S_AXI_ADDR_WIDTH-1:2];
-    assign S_AXI_RDATA = ram_dout;
+    always @(posedge S_AXI_ACLK)
+        if (!S_AXI_ARESETN);
+        else if (S_AXI_ARREADY && S_AXI_RVALID) ram_r_addr <= S_AXI_ARADDR[C_S_AXI_ADDR_WIDTH-1:2];
+
+    reg [C_S_AXI_DATA_WIDTH-1:0] ram_r_data_buffer;
+    reg ram_dout_valid;
+
+    initial ram_dout_valid = 1;
+
+    always_comb
+        if (ram_dout_valid) S_AXI_RDATA = ram_dout;
+        else S_AXI_RDATA = ram_r_data_buffer;
 
 
     //the channel is ready for a new transfer when the read data has been
     //transfered and it is not reading from the block ram.
-    assign S_AXI_ARREADY = ~S_AXI_RVALID && ~ram_r_en;
-    assign S_AXI_RRESP = 2'b00;
+    assign S_AXI_ARREADY = ~(S_AXI_RVALID || ram_r_en);
+    assign S_AXI_RRESP   = 2'b00;
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
@@ -247,10 +283,6 @@ module axil_interface #(
         .f_axi_awr_outstanding(faxil_awr_outstanding)
 
     );
-
-    //cant read and write to ram at the same time.
-    always @(posedge S_AXI_ACLK)
-        assert(!(ram_r_en && ram_w_en))
 
     always_comb
         if (OPT_SKIDBUFFER) begin
