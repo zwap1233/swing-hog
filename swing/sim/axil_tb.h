@@ -53,6 +53,8 @@ class axil_tb : public testbench<VT> {
 			case W_DONE:
 				this->core->s00_axi_bready = 0;
 				next_state = W_EXIT;
+			case W_EXIT:
+				next_state = W_EXIT;
 		}
 
 		current_state = next_state;
@@ -83,6 +85,8 @@ class axil_tb : public testbench<VT> {
 			case R_DONE:
 				this->core->s00_axi_rready = 0;
 				next_state = R_EXIT;
+			case R_EXIT:
+				next_state = R_EXIT;
 		}
 
 		current_state = next_state;
@@ -92,7 +96,6 @@ class axil_tb : public testbench<VT> {
 	using testbench<VT>::testbench;
 
 	uint32_t write(uint32_t addr, uint32_t data, uint8_t wstrb = 0xf) {
-
 		uint32_t resp;
 
 		w_state current_state = W_ADDR_DATA;
@@ -117,18 +120,16 @@ class axil_tb : public testbench<VT> {
 		}
 
 		return resp;
-	};
+	}
 
 	void write_buf(const uint32_t addr, const uint32_t* data, const uint32_t len, uint8_t* wstrb = nullptr) {
 		if (wstrb != nullptr)
 			for (int i = 0; i < len; i++) write(addr + i * 4, data[i], wstrb[i]);
 		else
 			for (int i = 0; i < len; i++) write(addr + i * 4, data[i]);
-	};
-
+	}
 
 	uint32_t read(uint32_t addr) {
-
 		uint32_t data;
 
 		r_state current_state = R_ADDR;
@@ -158,17 +159,89 @@ class axil_tb : public testbench<VT> {
 			data[i] = read(addr + i * 4);
 		}
 	}
-	// uint32_t readAndWrite(uint32_t r_addr, uint32_t w_addr, uint32_t data, uint8_t wstrb = 0xf) {
-	// 	this->core->s00_axi_awaddr = w_addr;
-	// 	this->core->s00_axi_wdata = data;
-	// 	this->core->s00_axi_wstrb = wstrb;	// make sure to set strobe
-	// 	this->core->s00_axi_awvalid = 1;
-	// 	this->core->s00_axi_wvalid = 1;
-	// 	this->core->s00_axi_bready = 1;
-	//
-	// 	this->core->s00_axi_araddr = r_addr;
-	// 	this->core->s00_axi_arvalid = 1;
-	//
-	// 	this->core->eval();
-	// }
+
+	void readAndWrite(uint32_t r_addr, uint32_t w_addr, uint32_t& r_data, uint32_t w_data, uint8_t wstrb = 0xf) {
+		w_state write_state = W_ADDR_DATA;
+		r_state read_state = R_ADDR;
+
+		bool w_done = false, r_done = false;
+		int i = 0;
+
+		while (!w_done && !r_done) {
+			this->core->s00_axi_araddr = r_addr;
+
+			this->core->s00_axi_awaddr = w_addr;
+			this->core->s00_axi_wdata = w_data;
+			this->core->s00_axi_wstrb = wstrb;
+
+			write_state_machine(write_state);
+
+			if (write_state == W_EXIT) w_done = true;
+
+			read_state_machine(read_state);
+
+			if (read_state == R_DONE) r_data = this->core->s00_axi_rdata;
+			if (read_state == R_EXIT) r_done = true;
+
+			if(w_done && r_done) break;
+
+			this->tick();
+
+			if (i++ >= 20) {
+				printf("Error axi write timeout\n");
+				break;
+			}
+		}
+	}
+
+	void readAndWrite_buf(const uint32_t r_addr, uint32_t w_addr, uint32_t* r_data, uint32_t* w_data, const uint32_t len) {
+		for (int i = 0; i < len; i++) {
+			readAndWrite(r_addr + 4 * i, w_addr + 4 * i, r_data[i], w_data[i]);
+		}
+	}
+
+	void readAndWriteConflict(uint32_t r_addr, uint32_t w_addr, uint32_t& r_data, uint32_t w_data, uint8_t wstrb = 0xf) {
+		w_state write_state = W_ADDR_DATA;
+		r_state read_state = R_ADDR;
+
+		bool w_done = false, r_done = false;
+		int i = 0;
+
+		while (!w_done || !r_done) {
+			this->core->s00_axi_araddr = r_addr;
+
+			this->core->s00_axi_awaddr = w_addr;
+			this->core->s00_axi_wdata = w_data;
+			this->core->s00_axi_wstrb = wstrb;
+
+			write_state_machine(write_state);
+
+			if (write_state == W_EXIT) w_done = true;
+
+			if (i != 0) {
+				// skip the first tick for the read interface so the read and write channels both try to write to bram at the same time and come into conflict.
+				read_state_machine(read_state);
+
+				if (read_state == R_DONE) r_data = this->core->s00_axi_rdata;
+				if (read_state == R_EXIT) r_done = true;
+			}
+
+			if(w_done && r_done) break;
+
+			this->tick();
+
+			i++;
+
+			if (i > 20) {
+				printf("Error axi write timeout\n");
+				break;
+			}
+		}
+	}
+
+	void readAndWriteConflict_buf(const uint32_t r_addr, uint32_t w_addr, uint32_t* r_data, uint32_t* w_data, const uint32_t len) {
+		for (int i = 0; i < len; i++) {
+			readAndWriteConflict(r_addr + 4 * i, w_addr + 4 * i, r_data[i], w_data[i]);
+		}
+	}
 };
