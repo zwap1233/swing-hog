@@ -40,7 +40,7 @@ wave:
 	surfer -s trace.surf.ron trace.vcd
 
 fwave:
-	surfer ./sby-build/axil_prove/engine_0/trace.vcd
+	gtkwave ./sby-build/axil_prove/engine_0/trace.vcd
 
 gtk:
 	gtkwave ./trave.vcd

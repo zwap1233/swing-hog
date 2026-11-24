@@ -6,17 +6,69 @@ enum AXI_RESP { AXI_OKAY = 0b00, AXI_SLVERR = 0b10, AXI_DECERR = 0b11 };
 
 template <class VT>
 class axil_tb : public testbench<VT> {
+   private:
+	enum r_state { R_ADDR, R_DATA, R_DONE };
+	enum w_state { W_ADDR_DATA, W_ADDR, W_DATA, W_RESP, W_DONE };
+
    public:
 	using testbench<VT>::testbench;
 
 	void write_buf(const uint32_t addr, const uint32_t* data, const uint32_t len, uint8_t* wstrb = nullptr) {
-		if(wstrb != nullptr)
-			for (int i = 0; i < len; i++)
-				write(addr + i*4, data[i], wstrb[i]);
+		if (wstrb != nullptr)
+			for (int i = 0; i < len; i++) write(addr + i * 4, data[i], wstrb[i]);
 		else
-			for (int i = 0; i < len; i++)
-				write(addr + i*4, data[i]);
+			for (int i = 0; i < len; i++) write(addr + i * 4, data[i]);
 	};
+
+	uint32_t write(uint32_t addr, uint32_t data, uint8_t wstrb = 0xf) {
+		/* The Master puts an address on the Write Address channel and data on the
+		 * Write data channel. At the same time it asserts AWVALID and WVALID
+		 * indicating the address and data on the respective channels is valid.
+		 * BREADY is also asserted by the Master, indicating it is ready to receive
+		 * a response. */
+
+		w_state current_state = W_ADDR;
+		w_state next_state = W_ADDR;
+
+		bool stop = false;
+		while (!stop) {
+			switch (current_state) {
+				case W_ADDR_DATA:
+					this->core->s00_axi_awaddr = addr;
+					this->core->s00_axi_wdata = data;
+					this->core->s00_axi_wstrb = wstrb;	// make sure to set strobe
+					this->core->s00_axi_awvalid = 1;
+					this->core->s00_axi_wvalid = 1;
+					this->core->s00_axi_bready = 1;
+
+					if (this->core->s00_axi_awready && this->s00_axi_wready) next_state = W_RESP;
+					else if(this->core->s00_axi_awready) next_state = W_DATA;
+					else if(this->core->s00_axi_wready) next_state = W_ADDR;
+					else next_state = W_ADDR_DATA;
+					break;
+				case W_ADDR:
+					this->core->s00_axi_awvalid = 1;
+					this->core->s00_axi_wvalid = 0;
+					if(this->s00_axi_awready) next_state = W_RESP;
+					else next_state = W_ADDR;
+					break;
+				case W_DATA:
+					this->core->s00_axi_awvalid = 0;
+					this->core->s00_axi_wvalid = 1;
+					// TODO: continue here
+					break;
+				case W_RESP:
+					this->core->s00_axi_bready = 1;
+					if (this->core->s00_axi_bvalid == 1) stop = true;
+					break;
+			}
+
+			current_state = next_state;
+			this->core->tick();
+		}
+
+		this->s00_axi_bready = 0;
+	}
 
 	uint32_t write(uint32_t addr, uint32_t data, uint8_t wstrb = 0xf) {
 		// printf("Writing 0x%x to 0x%x\n", data, addr);
@@ -27,7 +79,7 @@ class axil_tb : public testbench<VT> {
 		 * a response. */
 		this->core->s00_axi_awaddr = addr;
 		this->core->s00_axi_wdata = data;
-		this->core->s00_axi_wstrb = wstrb;  // make sure to set strobe
+		this->core->s00_axi_wstrb = wstrb;	// make sure to set strobe
 		this->core->s00_axi_awvalid = 1;
 		this->core->s00_axi_wvalid = 1;
 		this->core->s00_axi_bready = 1;
@@ -75,7 +127,7 @@ class axil_tb : public testbench<VT> {
 		this->core->eval();
 		// printf("Waiting for bvalid\n");
 		bool res = this->wait([](VT* core) -> bool { return core->s00_axi_bvalid == 1; });
-		if(!res){
+		if (!res) {
 			// printf("Waiting for arready timedout\n");
 			return 0x0;
 		}
@@ -91,7 +143,7 @@ class axil_tb : public testbench<VT> {
 
 	void read_buf(const uint32_t addr, uint32_t* data, const uint32_t len) {
 		for (int i = 0; i < len; i++) {
-			data[i] = read(addr + i*4);
+			data[i] = read(addr + i * 4);
 		}
 	}
 
@@ -108,11 +160,10 @@ class axil_tb : public testbench<VT> {
 		// address on the bus
 		this->core->eval();
 		bool res = this->wait([](VT* core) -> bool { return core->s00_axi_arready == 1; });
-		if(!res){
+		if (!res) {
 			// printf("Waiting for arready timedout\n");
 			return 0x0;
 		}
-
 
 		/* Since both ARVALID and ARREADY are asserted, on the next rising clock
 		 * edge the handshake occurs, after this the master and slave deassert
@@ -125,7 +176,7 @@ class axil_tb : public testbench<VT> {
 		 * RVALID, indicating the data in the channel is valid. The slave can also
 		 * put a response on RRESP, though this does not occur here.*/
 		res = this->wait([](VT* core) -> bool { return core->s00_axi_rvalid == 1; });
-		if(!res){
+		if (!res) {
 			// printf("Waiting for rvalid timedout\n");
 			return 0x0;
 		}
@@ -137,5 +188,19 @@ class axil_tb : public testbench<VT> {
 		this->core->s00_axi_rready = 0;
 
 		return data;
+	}
+
+	uint32_t readAndWrite(uint32_t r_addr, uint32_t w_addr, uint32_t data, uint8_t wstrb = 0xf) {
+		this->core->s00_axi_awaddr = w_addr;
+		this->core->s00_axi_wdata = data;
+		this->core->s00_axi_wstrb = wstrb;	// make sure to set strobe
+		this->core->s00_axi_awvalid = 1;
+		this->core->s00_axi_wvalid = 1;
+		this->core->s00_axi_bready = 1;
+
+		this->core->s00_axi_araddr = r_addr;
+		this->core->s00_axi_arvalid = 1;
+
+		this->core->eval();
 	}
 };

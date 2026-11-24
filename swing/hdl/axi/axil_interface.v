@@ -72,7 +72,7 @@ module axil_interface #(
 
     //ram_channel
     output wire ram_en,
-    output reg [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wen,
+    output wire [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_wen,
     output wire [C_S_AXI_ADDR_WIDTH-3:0] ram_addr,
     output reg [C_S_AXI_DATA_WIDTH-1:0] ram_din,
     input wire [C_S_AXI_DATA_WIDTH-1:0] ram_dout
@@ -88,8 +88,11 @@ module axil_interface #(
     reg [C_S_AXI_ADDR_WIDTH-3:0] ram_w_addr;
     reg [C_S_AXI_ADDR_WIDTH-3:0] ram_r_addr;
 
-    reg ram_w_en;
-    reg ram_r_en;
+    reg [(C_S_AXI_DATA_WIDTH/8)-1:0] ram_w_wen;
+    assign ram_wen = ram_w_en ? ram_w_wen : 4'b0000;
+
+    reg  ram_w_en;
+    reg  ram_r_en;
     wire ram_r_stall;
 
     initial begin
@@ -163,13 +166,16 @@ module axil_interface #(
     //more than one clock cycle if BREADY is not also set high.
     always @(posedge S_AXI_ACLK) begin
         if (!S_AXI_ARESETN) begin
-            ram_w_en <= 0;
-            ram_wen  <= 4'b1111;
+            ram_w_en  <= 0;
+            ram_w_wen <= 4'b0000;
         end else if (S_AXI_WREADY && S_AXI_WVALID) begin
-            ram_din  <= S_AXI_WDATA;
-            ram_wen  <= S_AXI_WSTRB;
-            ram_w_en <= 1;
-        end else if (ram_w_en == 1) ram_w_en <= 0;
+            ram_din   <= S_AXI_WDATA;
+            ram_w_wen <= S_AXI_WSTRB;
+            ram_w_en  <= 1;
+        end else if (ram_w_en == 1) begin
+            ram_w_en  <= 0;
+            ram_w_wen <= 0;
+        end
     end
 
     //============================= read channel
@@ -184,30 +190,34 @@ module axil_interface #(
         if (!S_AXI_ARESETN) begin
             S_AXI_RVALID <= 0;
             ram_r_en <= 0;
-            ram_dout_valid <= 1;
         end else if (S_AXI_ARREADY && S_AXI_ARVALID) begin
             ram_r_en <= 1;
         end else if (ram_r_en && !ram_r_stall) begin
             ram_r_en <= 0;
             S_AXI_RVALID <= 1;
-            ram_dout_valid <= 1;
         end else if (S_AXI_RREADY && S_AXI_RVALID) begin
             S_AXI_RVALID <= 0;
-            ram_dout_valid <= 0;
-        end else if(S_AXI_RVALID)
-            ram_r_data_buffer <= ram_dout;
-            ram_dout_valid <= 0;
-
+        end
     end
 
     always @(posedge S_AXI_ACLK)
+        if (!S_AXI_ARESETN) ram_dout_valid <= 0;
+        else if (ram_r_en && !ram_r_stall) ram_dout_valid <= 1;
+        else if (S_AXI_RREADY && S_AXI_RVALID) ram_dout_valid <= 0;
+        else if (ram_dout_valid) begin
+            ram_dout_valid <= 0;
+            ram_r_data_buffer <= ram_dout;
+        end
+
+    always @(posedge S_AXI_ACLK)
         if (!S_AXI_ARESETN);
-        else if (S_AXI_ARREADY && S_AXI_RVALID) ram_r_addr <= S_AXI_ARADDR[C_S_AXI_ADDR_WIDTH-1:2];
+        else if (S_AXI_ARREADY && S_AXI_ARVALID) ram_r_addr <= S_AXI_ARADDR[C_S_AXI_ADDR_WIDTH-1:2];
 
     reg [C_S_AXI_DATA_WIDTH-1:0] ram_r_data_buffer;
     reg ram_dout_valid;
 
     initial ram_dout_valid = 1;
+    initial ram_r_data_buffer = 0;
 
     always_comb
         if (ram_dout_valid) S_AXI_RDATA = ram_dout;
@@ -302,6 +312,18 @@ module axil_interface #(
     // S_AXI_RVALID is inactive, then the outgoing data is also zero.
     //
     always_comb if (OPT_LOWPOWER && !S_AXI_RVALID) assert (S_AXI_RDATA == 0);
+
+    //write enable needs to be zero when reading from bram
+    always @(posedge S_AXI_ACLK)
+        if (ram_r_en && !ram_r_stall && S_AXI_ARESETN)
+            assert (ram_wen == 0);
+
+    //if last cycle it was stalling then it still needs to do the read
+    always @(posedge S_AXI_ACLK)
+        if ($past(ram_r_en && ram_r_stall && S_AXI_ARESETN) && S_AXI_ARESETN)
+            assert (ram_r_en);
+
+    always @(posedge S_AXI_ACLK) if (S_AXI_ARESETN) cover (ram_r_en && ram_w_en);
 
     ////////////////////////////////////////////////////////////////////////
     //
