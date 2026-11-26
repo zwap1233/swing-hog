@@ -1,3 +1,6 @@
+#ifndef __AXI_TB_H__
+#define __AXI_TB_H__
+
 #include <stdint.h>
 
 #include "testbench.h"
@@ -22,7 +25,7 @@ class axi_tb : public testbench<VT> {
 		if (len < 1) return AXI_DECERR;
 
 		// Write address and general setup
-		this->core->s00_axi_awaddr = addr;
+		this->core->SIGNAL_PREFIX_awaddr = addr;
 		this->core->s00_axi_awburst = burst_type;
 		this->core->s00_axi_awlen = len - 1;
 		this->core->s00_axi_awsize = 0x2;  // 4 bytes is data bus width
@@ -99,3 +102,5 @@ class axi_tb : public testbench<VT> {
 		}
 	}
 };
+
+#endif

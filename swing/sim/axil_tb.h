@@ -1,3 +1,7 @@
+
+#ifndef __AXIL_TB_H__
+#define __AXIL_TB_H__
+
 #include <stdint.h>
 
 #include "testbench.h"
@@ -245,3 +249,5 @@ class axil_tb : public testbench<VT> {
 		}
 	}
 };
+
+#endif

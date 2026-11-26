@@ -1,3 +1,7 @@
+
+#ifndef __TESTBENCH_H__
+#define __TESTBENCH_H__
+
 #include <stdint.h>
 #include <stdio.h>
 #include <verilated_vcd_c.h>
@@ -76,3 +80,5 @@ class testbench {
 		delete core;
 	}
 };
+
+#endif

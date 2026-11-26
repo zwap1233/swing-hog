@@ -6,6 +6,6 @@
 	};
 };
 
-&axil_top_0 {
+&swing_0 {
 	compatible = "generic-uio";
 };
