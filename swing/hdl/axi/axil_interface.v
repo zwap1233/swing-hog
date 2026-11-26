@@ -107,10 +107,7 @@ module axil_interface #(
 
     //ram addr is the write address if ram_w_en is high because writing always
     //has priority
-    always_comb
-        if (ram_w_en) ram_addr = ram_w_addr;
-        else if (ram_r_en) ram_addr = ram_r_addr;
-        else ram_addr = 0;
+    assign ram_addr = ram_w_en ? ram_w_addr : ram_r_addr;
 
     //============================= write channel
 
@@ -219,10 +216,7 @@ module axil_interface #(
     initial ram_dout_valid = 1;
     initial ram_r_data_buffer = 0;
 
-    always_comb
-        if (ram_dout_valid) S_AXI_RDATA = ram_dout;
-        else S_AXI_RDATA = ram_r_data_buffer;
-
+    assign S_AXI_RDATA = ram_dout_valid ? ram_dout : ram_r_data_buffer;
 
     //the channel is ready for a new transfer when the read data has been
     //transfered and it is not reading from the block ram.

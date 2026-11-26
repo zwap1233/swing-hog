@@ -1,17 +1,17 @@
 {
   "design": {
     "design_info": {
-      "boundary_crc": "0xCC6CFA53F622E079",
+      "boundary_crc": "0xCC6CFA53B4580162",
       "device": "xc7z020clg400-1",
       "name": "design_1",
       "rev_ctrl_bd_flag": "RevCtrlBdOff",
-      "synth_flow_mode": "None",
+      "synth_flow_mode": "Hierarchical",
       "tool_version": "2025.2",
       "validated": "true"
     },
     "design_tree": {
       "processing_system7_0": "",
-      "axil_top_0": "",
+      "swing_0": "",
       "axi_smc": "",
       "rst_ps7_0_100M": ""
     },
@@ -1922,16 +1922,16 @@
           }
         }
       },
-      "axil_top_0": {
-        "vlnv": "xilinx.com:module_ref:axil_top:1.0",
+      "swing_0": {
+        "vlnv": "xilinx.com:module_ref:swing:1.0",
         "ip_revision": "1",
-        "xci_name": "design_1_axil_top_0_0",
-        "xci_path": "ip/design_1_axil_top_0_0/design_1_axil_top_0_0.xci",
-        "inst_hier_path": "axil_top_0",
+        "xci_name": "design_1_swing_0_0",
+        "xci_path": "ip/design_1_swing_0_0/design_1_swing_0_0.xci",
+        "inst_hier_path": "swing_0",
         "has_run_ip_tcl": "true",
         "reference_info": {
           "ref_type": "hdl",
-          "ref_name": "axil_top",
+          "ref_name": "swing",
           "boundary_crc": "0x0"
         },
         "interface_ports": {
@@ -1957,7 +1957,7 @@
                 "value_src": "constant"
               },
               "ADDR_WIDTH": {
-                "value": "8",
+                "value": "10",
                 "value_src": "auto"
               },
               "AWUSER_WIDTH": {
@@ -2062,7 +2062,7 @@
               "AWADDR": {
                 "physical_name": "s00_axi_awaddr",
                 "direction": "I",
-                "left": "7",
+                "left": "9",
                 "right": "0"
               },
               "AWPROT": {
@@ -2116,7 +2116,7 @@
               "ARADDR": {
                 "physical_name": "s00_axi_araddr",
                 "direction": "I",
-                "left": "7",
+                "left": "9",
                 "right": "0"
               },
               "ARPROT": {
@@ -2276,7 +2276,7 @@
       "axi_smc_M00_AXI": {
         "interface_ports": [
           "axi_smc/M00_AXI",
-          "axil_top_0/s00_axi"
+          "swing_0/s00_axi"
         ]
       },
       "processing_system7_0_DDR": {
@@ -2304,7 +2304,7 @@
           "processing_system7_0/FCLK_CLK0",
           "processing_system7_0/M_AXI_GP0_ACLK",
           "axi_smc/aclk",
-          "axil_top_0/s00_axi_aclk",
+          "swing_0/s00_axi_aclk",
           "rst_ps7_0_100M/slowest_sync_clk"
         ]
       },
@@ -2317,7 +2317,7 @@
       "rst_ps7_0_100M_peripheral_aresetn": {
         "ports": [
           "rst_ps7_0_100M/peripheral_aresetn",
-          "axil_top_0/s00_axi_aresetn",
+          "swing_0/s00_axi_aresetn",
           "axi_smc/aresetn"
         ]
       }
@@ -2327,8 +2327,8 @@
         "address_spaces": {
           "Data": {
             "segments": {
-              "SEG_axil_top_0_reg0": {
-                "address_block": "/axil_top_0/s00_axi/reg0",
+              "SEG_swing_0_reg0": {
+                "address_block": "/swing_0/s00_axi/reg0",
                 "offset": "0x40000000",
                 "range": "4K"
               }
