@@ -1,0 +1,26 @@
+[tasks]
+prove : default
+cover
+
+[options]
+cover: mode cover
+cover: depth 25
+prove: mode prove
+prove: depth 11
+
+[engines]
+smtbmc yices
+
+[script]
+read -define F_AXIL_RAMPORT
+read -formal bram.v
+read -formal axil_ram_port.v
+read -formal swing.v
+read -formal faxil_slave.v
+prep -top swing
+
+[files]
+../hdl/axi/axil_ram_port.v
+../hdl/swing.v
+../formal/faxil_slave.v
+../hdl/axi/bram.v

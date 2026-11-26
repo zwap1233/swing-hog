@@ -24,7 +24,7 @@ class testbench {
 		trace->spTrace()->set_time_unit("ps");
 		trace->open("trace.vcd");
 		
-		core->s00_axi_aclk = 1; //start with high clock
+		core->aclk = 1; //start with high clock
 
 		reset(); //reset the chip to have a good start
 	}
@@ -33,10 +33,10 @@ class testbench {
 		core->eval();
 		trace->dump(time_ps + clock_period / 16);
 
-		core->s00_axi_aclk = 0;
+		core->aclk = 0;
 		core->eval();
 		trace->dump(time_ps + clock_period / 2);
-		core->s00_axi_aclk = 1;
+		core->aclk = 1;
 		core->eval();
 		trace->dump(time_ps + clock_period);
 
@@ -63,9 +63,9 @@ class testbench {
 	}
 
 	void reset() {
-		core->s00_axi_aresetn = 0;
+		core->aresetn = 0;
 		tick();
-		core->s00_axi_aresetn = 1;
+		core->aresetn = 1;
 	}
 
 	void close() {

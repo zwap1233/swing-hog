@@ -1,0 +1,24 @@
+[tasks]
+prove : default
+cover
+
+[options]
+cover: mode cover
+cover: depth 25
+prove: mode prove
+prove: depth 11
+
+[engines]
+smtbmc yices
+
+[script]
+read -define F_AXIL_CTRLREG
+read -formal axil_ctrl_port.v
+read -formal swing.v
+read -formal faxil_slave.v
+prep -top swing
+
+[files]
+../hdl/axi/axil_ctrl_port.v
+../hdl/swing.v
+../formal/faxil_slave.v
