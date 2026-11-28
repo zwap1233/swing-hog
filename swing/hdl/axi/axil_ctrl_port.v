@@ -144,27 +144,15 @@ module axil_ctrl_port #(
 
     always @(posedge S_AXI_ACLK)
         if (!S_AXI_ARESETN);
-        else if(S_AXI_ARREADY && S_AXI_AWVALID)
-            if(S_AXI_ARADDR == 0) S_AXI_RDATA <= ctrl_reg;
+        else if (S_AXI_ARREADY && S_AXI_AWVALID) if (S_AXI_ARADDR == 0) S_AXI_RDATA <= ctrl_reg;
 
     //the channel is ready for a new transfer when the read data has been
     //transfered and it is not reading from the block ram.
     assign S_AXI_ARREADY = ~(S_AXI_RVALID);
     assign S_AXI_RRESP   = 2'b00;
 
-    ////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////
-    //
-    // Formal properties
-    //
-    ////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////
 `ifdef FORMAL
-    ////////////////////////////////////////////////////////////////////////
-    //
-    // The AXI-lite control interface
-    //
-    ////////////////////////////////////////////////////////////////////////
+
     localparam OPT_SKIDBUFFER = 0;
     localparam OPT_LOWPOWER   = 0;
 
